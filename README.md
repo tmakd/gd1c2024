@@ -2,8 +2,14 @@
 
 Grupo GeDeDe
 
+Der inicial:
+
 ![Der inicial](DER_2024C1.jpeg)
 
+
+
+Progreso Migracion (actualizado):
+![Der actual](DER_2024C1_actualizado.jpeg)
 
 Entregas
 
