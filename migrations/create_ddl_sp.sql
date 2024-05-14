@@ -20,7 +20,7 @@ BEGIN
 
 	-- Crear la tabla Sucursal
 	CREATE TABLE Sucursal (
-		sucu_codigo DECIMAL(18,0) PRIMARY KEY,
+		sucu_codigo DECIMAL(18,0) IDENTITY(1,1) PRIMARY KEY,
 		sucu_super DECIMAL(18,0), -- FK
 		sucu_nombre NVARCHAR(255),
 		sucu_localidad NVARCHAR(255),
@@ -34,19 +34,21 @@ BEGIN
 
 	-- Crear la tabla Tipo_Caja
 	CREATE TABLE Tipo_Caja (
-		caja_tipo NVARCHAR(255) PRIMARY KEY
+		tipo_caja_codigo DECIMAL(18,0) IDENTITY(1,1) PRIMARY KEY,
+		tipo_caja_nombre NVARCHAR(255)
 	);
 
 	-- Crear la tabla Caja
 	CREATE TABLE Caja (
-		caja_codigo DECIMAL(18,0) IDENTITY(1,1) PRIMARY KEY,
-		caja_tipo NVARCHAR(255), -- FK
-		caja_sucursal DECIMAL(18,0)
+		caja_sucursal DECIMAL(18,0),
+		caja_codigo DECIMAL(18,0), -- FK
+		PRIMARY KEY (caja_sucursal, caja_codigo),
+		caja_tipo DECIMAL(18,0) -- FK
 	);
 
 	-- Agregar la restricci�n FK_Caja_Tipo_Caja a la tabla Caja
 	ALTER TABLE Caja
-	ADD CONSTRAINT FK_Caja_Tipo_Caja FOREIGN KEY (caja_tipo) REFERENCES Tipo_Caja(caja_tipo);
+	ADD CONSTRAINT FK_Caja_Tipo_Caja FOREIGN KEY (caja_tipo) REFERENCES Tipo_Caja(tipo_caja_codigo);
 
 	-- Agregar la restricci�n FK_Caja_Sucursal a la tabla Caja
 	ALTER TABLE Caja
@@ -91,7 +93,7 @@ BEGIN
 
 	ALTER TABLE Factura
 	ADD CONSTRAINT FK_Factura_Caja
-	FOREIGN KEY (fact_caja) REFERENCES Caja(caja_codigo);
+	FOREIGN KEY (fact_sucursal, fact_caja) REFERENCES Caja(caja_sucursal, caja_codigo);
 
 	ALTER TABLE Factura
 	ADD CONSTRAINT FK_Factura_Empleado
@@ -111,19 +113,26 @@ BEGIN
 
 	-- Crear la tabla Subcategoria
 	CREATE TABLE Subcategoria  (
-		subc_codigo DECIMAL(18,0) IDENTITY(1,1) PRIMARY KEY,
-		subc_categoria DECIMAL(18,0)
+		subc_codigo DECIMAL(18,0), --FK
+		subc_categoria DECIMAL(18,0) -- FK
+		PRIMARY KEY(subc_codigo, subc_categoria)
 	);
 
 	ALTER TABLE Subcategoria
 	ADD CONSTRAINT FK_Subcategoria_Categoria
 	FOREIGN KEY (subc_categoria) REFERENCES Categoria(cate_codigo);
 
+    ALTER TABLE Subcategoria
+    ADD CONSTRAINT FK_Subcategoria_SubCategoria
+    FOREIGN KEY (subc_codigo) REFERENCES Categoria(cate_codigo);
+
 	-- Crear la tabla Producto
 	CREATE TABLE Producto  (
 		prod_codigo DECIMAL(18,0) IDENTITY(1,1) PRIMARY KEY,
 		prod_marca DECIMAL(18,0), -- FK
 		prod_subcategoria DECIMAL(18,0), -- FK
+		prod_categoria DECIMAL(18,0), -- FK
+		prod_nombre NVARCHAR(255),
 		prod_descripcion NVARCHAR(255),
 		prod_precio DECIMAL(18,2)
 	);
@@ -132,15 +141,16 @@ BEGIN
 	ADD CONSTRAINT FK_Producto_Marca
 	FOREIGN KEY (prod_marca) REFERENCES Marca(marc_codigo);
 
-	ALTER TABLE Producto
-	ADD CONSTRAINT FK_Producto_Subcategoria
-	FOREIGN KEY (prod_subcategoria) REFERENCES Subcategoria(subc_codigo);
+    ALTER TABLE Producto
+    ADD CONSTRAINT FK_Producto_Subcategoria
+    FOREIGN KEY (prod_subcategoria, prod_categoria) REFERENCES Subcategoria(subc_codigo, subc_categoria);
+
 
 	-- Crear la tabla Regla
 	CREATE TABLE Regla  (
 		regl_codigo DECIMAL(18,0) IDENTITY(1,1) PRIMARY KEY,
 		regl_descripcion NVARCHAR(255),
-		regl_descuento DECIMAL(18,2),
+		regl_descuento_aplicable_producto DECIMAL(18,2),
 		regl_cant_aplicable_regla DECIMAL(18,2),
 		regl_cant_aplicable_descuento DECIMAL(18,2),
 		regl_cant_maxima DECIMAL(18,0),
@@ -150,7 +160,7 @@ BEGIN
 
 	-- Crear la tabla Promocion
 	CREATE TABLE Promocion  (
-		prom_codigo DECIMAL(18,0) IDENTITY(1,1) PRIMARY KEY,
+		prom_codigo DECIMAL(18,0) PRIMARY KEY,
 		prom_regla DECIMAL(18,0), -- FK
 		prom_descripcion NVARCHAR(255),
 		prom_fecha_inicio DATETIME,
