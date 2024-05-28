@@ -136,12 +136,22 @@ BEGIN
           where promo_codigo is not null
     END;
 
-    /*
+
     BEGIN
-    --          TODO:  INSERT INTO [GD1C2024_GeDeDe].dbo.Promocion_Producto (prod_codigo, prom_codigo)
+    INSERT INTO [GD1C2024_GeDeDe].dbo.Promocion_Producto (prod_codigo, prom_codigo)
+    SELECT distinct Producto.prod_codigo ,[PROMO_CODIGO]
+      FROM [GD1C2024].[gd_esquema].[Maestra]
+      join [GD1C2024_GeDeDe].dbo.Categoria on [PRODUCTO_CATEGORIA] = Categoria.cate_descripcion
+      join [GD1C2024_GeDeDe].dbo.Categoria as Cat_Subcategoria on [PRODUCTO_SUB_CATEGORIA] = Cat_Subcategoria.cate_descripcion
+      inner join [GD1C2024_GeDeDe].dbo.Producto on [PRODUCTO_DESCRIPCION] = Producto.prod_descripcion
+    	and [PRODUCTO_NOMBRE] = Producto.prod_nombre
+    	and [PRODUCTO_PRECIO] = Producto.prod_precio
+    	and Categoria.cate_codigo = Producto.prod_categoria
+    	and Cat_Subcategoria.cate_codigo = Producto.prod_subcategoria
+      where promo_codigo is not null AND PROMO_CODIGO IS NOT NULL;
 
     END;
-*/
+
     BEGIN
         INSERT INTO [GD1C2024_GeDeDe].dbo.Factura (fact_nro, fact_sucursal, fact_caja, fact_vendedor, fact_fecha_hora, fact_tipo, fact_subtotal_productos, fact_total_descuento_aplicado, fact_descuento_aplicado_mp, fact_total_envio, fact_total_ticket)
         SELECT distinct [TICKET_NUMERO] -- fact_nro
