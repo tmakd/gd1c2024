@@ -1,7 +1,7 @@
-USE GD1C2024_Migrada;
+USE GD1C2024_GeDeDe;
 GO
 
-CREATE PROCEDURE GD1C2024_MIGRACION_DDL
+CREATE PROCEDURE GD1C2024_GeDeDe_DDL
 AS
 BEGIN
 
@@ -85,7 +85,7 @@ BEGIN
 		fact_descuento_aplicado_mp DECIMAL(18,2),
 		fact_total_envio DECIMAL(18,2),
 		fact_total_ticket DECIMAL(18,2),
-		PRIMARY KEY (fact_tipo, fact_nro, fact_sucursal)
+		PRIMARY KEY (fact_tipo, fact_nro, fact_sucursal, fact_caja)
 	);
 
 	ALTER TABLE Factura
@@ -192,8 +192,9 @@ BEGIN
 		item_fact_tipo NVARCHAR(255), -- FK
 		item_fact_sucursal DECIMAL(18,0), -- FK
 		item_fact_nro DECIMAL(18,0), -- FK
+		item_fact_caja DECIMAL(18,0), -- FK
 		item_producto DECIMAL(18,0), -- FK
-		PRIMARY KEY (item_fact_tipo, item_fact_nro, item_fact_sucursal, item_producto),
+		PRIMARY KEY (item_fact_tipo, item_fact_nro, item_fact_sucursal, item_producto, item_fact_caja),
 		item_promo_aplicada DECIMAL(18,0), -- FK
 		item_cantidad DECIMAL(18,0),
 		item_precio_unitario DECIMAL(18,0),
@@ -203,7 +204,7 @@ BEGIN
 
 	ALTER TABLE Item_Factura
 	ADD CONSTRAINT FK_Item_Factura_Factura
-	FOREIGN KEY (item_fact_tipo, item_fact_nro, item_fact_sucursal) REFERENCES Factura(fact_tipo, fact_nro, fact_sucursal);
+	FOREIGN KEY (item_fact_tipo, item_fact_nro, item_fact_sucursal, item_fact_caja) REFERENCES Factura(fact_tipo, fact_nro, fact_sucursal, fact_caja);
 
 
 	ALTER TABLE Item_Factura
@@ -235,6 +236,7 @@ BEGIN
 		envi_fact_tipo NVARCHAR(255), -- FK
 		envi_fact_nro DECIMAL(18,0), --FK
 		envi_fact_sucursal DECIMAL(18,0), --FK
+		envi_fact_caja DECIMAL(18,0), --FK
 		envi_cliente DECIMAL(18,0), --FK
 		envi_fecha_programada DATETIME,
 		envi_costo DECIMAL(18,2),
@@ -246,7 +248,7 @@ BEGIN
 
 	ALTER TABLE Envio
 	ADD CONSTRAINT FK_Envio_Factura
-	FOREIGN KEY (envi_fact_tipo, envi_fact_nro, envi_fact_sucursal) REFERENCES Factura(fact_tipo, fact_nro, fact_sucursal);
+	FOREIGN KEY (envi_fact_tipo, envi_fact_nro, envi_fact_sucursal, envi_fact_caja) REFERENCES Factura(fact_tipo, fact_nro, fact_sucursal, fact_caja);
 
 	ALTER TABLE Envio
 	ADD CONSTRAINT FK_Envio_Cliente
@@ -280,6 +282,7 @@ BEGIN
 		pago_medio_pago DECIMAL(18,0), -- FK
 		pago_fact_tipo NVARCHAR(255), -- FK
 		pago_fact_sucursal DECIMAL(18,0), -- FK
+		pago_fact_caja DECIMAL(18,0), -- FK
 		pago_fact_nro DECIMAL(18,0), -- FK
 		pago_detalle DECIMAL(18,0), -- FK
 		pago_fecha_hora DATETIME,
@@ -313,7 +316,7 @@ BEGIN
 
 	ALTER TABLE Pago
 	ADD CONSTRAINT FK_Pago_Factura
-	FOREIGN KEY (pago_fact_tipo, pago_fact_nro, pago_fact_sucursal) REFERENCES Factura(fact_tipo, fact_nro, fact_sucursal);
+	FOREIGN KEY (pago_fact_tipo, pago_fact_nro, pago_fact_sucursal, pago_fact_caja) REFERENCES Factura(fact_tipo, fact_nro, fact_sucursal, fact_caja);
 
 	ALTER TABLE Pago
 	ADD CONSTRAINT FK_Pago_Detalle_Pago
