@@ -135,5 +135,65 @@ BEGIN
           inner join [GD1C2024_Migrada].dbo.Regla on REGLA_DESCRIPCION = Regla.regl_descripcion
           where promo_codigo is not null
     END;
+
+    /*
+    BEGIN
+    --          TODO:  INSERT INTO [GD1C2024_Migrada].dbo.Promocion_Producto (prod_codigo, prom_codigo)
+
+    END;
+
+    BEGIN
+        INSERT INTO [GD1C2024_Migrada].dbo.Factura (fact_nro, fact_sucursal, fact_caja, fact_vendedor, fact_fecha_hora, fact_tipo, fact_subtotal_productos, fact_total_descuento_aplicado, fact_descuento_aplicado_mp, fact_total_envio, fact_total_ticket)
+        SELECT distinct [TICKET_NUMERO] -- fact_nro
+        	  ,[GD1C2024_Migrada].dbo.Sucursal.sucu_codigo -- fact_sucursal
+        	  ,[CAJA_NUMERO]	-- fact_caja
+        	  ,[GD1C2024_Migrada].dbo.Empleado.empl_codigo	-- fact_vendedor
+              ,[TICKET_FECHA_HORA] -- fact_fecha_hora
+              ,[TICKET_TIPO_COMPROBANTE] -- fact_tipo
+              ,[TICKET_SUBTOTAL_PRODUCTOS] -- fact_subtotal_productos
+              ,[TICKET_TOTAL_DESCUENTO_APLICADO] -- fact_descuento_aplicado
+              ,[TICKET_TOTAL_DESCUENTO_APLICADO_MP] -- fact_descuento_aplicado_mp
+              ,[TICKET_TOTAL_ENVIO] -- fact_total_envio
+              ,[TICKET_TOTAL_TICKET] -- fact_total_ticket
+
+        	   FROM [GD1C2024].[gd_esquema].[Maestra]
+        	   inner join [GD1C2024_Migrada].dbo.Empleado on [EMPLEADO_DNI] = Empleado.empl_dni
+        	   inner join [GD1C2024_Migrada].dbo.Sucursal on [SUCURSAL_NOMBRE] = Sucursal.sucu_nombre;
+    END;
+    BEGIN
+    --          TODO:  INSERT INTO [GD1C2024_Migrada].dbo.Item_Factura (item_nro, item_producto, item_promo_aplicada, item_cantidad, item_precio_unitario, item_precio_total, item_descuento_promo)
+
+    END;
+    BEGIN
+    --          TODO:  INSERT INTO [GD1C2024_Migrada].dbo.Envio (envi_codigo, envi_factura, envi_cliente, envi_fecha_programada, envi_costo, envi_horario_inicio, envi_horario_fin, envi_fecha_entrega, envi_estado)
+
+    END;
+    */
+    BEGIN
+        INSERT INTO [GD1C2024_Migrada].dbo.Medio_Pago (medio_pago_detalle, medio_pago_tipo)
+        SELECT distinct [PAGO_MEDIO_PAGO]
+              ,[PAGO_TIPO_MEDIO_PAGO]
+          FROM [GD1C2024].[gd_esquema].[Maestra]
+          where PAGO_MEDIO_PAGO is not null
+
+    END;
+/*
+    BEGIN
+--          TODO:  INSERT INTO [GD1C2024_Migrada].dbo.Descuento (descu_codigo, descu_medio_pago, descu_descripcion, descu_fecha_inicio, descu_fecha_fin, descu_porcentaje_descuento, descu_tope)
+
+    END;
+    BEGIN
+--          TODO:  INSERT INTO [GD1C2024_Migrada].dbo.Pago (pago_medio_pago, pago_fact_tipo, pago_fact_sucursal, pago_fact_nro, pago_fecha_hora, pago_importe)
+-- PAGO_DETALLE
+--          TODO:  INSERT INTO [GD1C2024_Migrada].dbo.Detalle_Pago (deta_pago_pago, deta_pago_cliente, deta_pago_tarjeta_nro, deta_pago_tarjeta_cuotas, deta_pago_tarjeta_fecha_vencimiento)
+
+--          TODO:  UPDATE [GD1C2024_Migrada].dbo.Pago (pago_detalle)
+-- Fijarse si es necesario hacer nullable la tabla antes y aca sacarselo.
+    END;
+    BEGIN
+--          TODO:  INSERT INTO [GD1C2024_Migrada].dbo.Aplicacion_Descuento (apli_descuento_pago, apli_descuento_codigo_descuento, apli_descuento_monto)
+
+    END;
+    */
 END;
 GO

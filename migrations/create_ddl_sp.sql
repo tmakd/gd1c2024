@@ -74,17 +74,18 @@ BEGIN
 
 	-- Crear la tabla Factura
 	CREATE TABLE Factura (
-		fact_nro DECIMAL(18,0) IDENTITY(1,1) PRIMARY KEY,
-		fact_sucursal DECIMAL(18,0), -- FK
+	    fact_tipo NVARCHAR(255), -- PK
+		fact_nro DECIMAL(18,0), -- PK
+		fact_sucursal DECIMAL(18,0), -- PK, FK
 		fact_caja DECIMAL(18,0), -- FK
 		fact_vendedor DECIMAL(18,0), -- FK
 		fact_fecha_hora DATETIME,
-		fact_tipo nvarchar(255),
 		fact_subtotal_productos DECIMAL(18,2),
 		fact_total_descuento_aplicado DECIMAL(18,2),
 		fact_descuento_aplicado_mp DECIMAL(18,2),
 		fact_total_envio DECIMAL(18,2),
-		fact_total_ticket DECIMAL(18,2)
+		fact_total_ticket DECIMAL(18,2),
+		PRIMARY KEY (fact_tipo, fact_nro, fact_sucursal)
 	);
 
 	ALTER TABLE Factura
@@ -188,9 +189,11 @@ BEGIN
 
 	-- Crear la tabla Item_Factura
 	CREATE TABLE Item_Factura  (
-		item_nro DECIMAL(18,0), -- FK
+		item_fact_tipo NVARCHAR(255), -- FK
+		item_fact_sucursal DECIMAL(18,0), -- FK
+		item_fact_nro DECIMAL(18,0), -- FK
 		item_producto DECIMAL(18,0), -- FK
-		PRIMARY KEY (item_nro, item_producto),
+		PRIMARY KEY (item_fact_tipo, item_fact_nro, item_fact_sucursal, item_producto),
 		item_promo_aplicada DECIMAL(18,0), -- FK
 		item_cantidad DECIMAL(18,0),
 		item_precio_unitario DECIMAL(18,0),
@@ -200,7 +203,7 @@ BEGIN
 
 	ALTER TABLE Item_Factura
 	ADD CONSTRAINT FK_Item_Factura_Factura
-	FOREIGN KEY (item_nro) REFERENCES Factura(fact_nro);
+	FOREIGN KEY (item_fact_tipo, item_fact_nro, item_fact_sucursal) REFERENCES Factura(fact_tipo, fact_nro, fact_sucursal);
 
 
 	ALTER TABLE Item_Factura
@@ -229,7 +232,9 @@ BEGIN
 	-- Crear la tabla Envio
 	CREATE TABLE Envio (
 		envi_codigo DECIMAL(18,0) IDENTITY(1,1) PRIMARY KEY,
-		envi_factura DECIMAL(18,0), -- FK
+		envi_fact_tipo NVARCHAR(255), -- FK
+		envi_fact_nro DECIMAL(18,0), --FK
+		envi_fact_sucursal DECIMAL(18,0), --FK
 		envi_cliente DECIMAL(18,0), --FK
 		envi_fecha_programada DATETIME,
 		envi_costo DECIMAL(18,2),
@@ -241,7 +246,7 @@ BEGIN
 
 	ALTER TABLE Envio
 	ADD CONSTRAINT FK_Envio_Factura
-	FOREIGN KEY (envi_factura) REFERENCES Factura(fact_nro);
+	FOREIGN KEY (envi_fact_tipo, envi_fact_nro, envi_fact_sucursal) REFERENCES Factura(fact_tipo, fact_nro, fact_sucursal);
 
 	ALTER TABLE Envio
 	ADD CONSTRAINT FK_Envio_Cliente
@@ -256,7 +261,7 @@ BEGIN
 
 	-- Crear la tabla Descuento
 	CREATE TABLE Descuento (
-		descu_codigo DECIMAL(18,0) IDENTITY(1,1) PRIMARY KEY,
+		descu_codigo DECIMAL(18,0) PRIMARY KEY,
 		descu_medio_pago DECIMAL(18,0), -- FK
 		descu_descripcion NVARCHAR(255),
 		descu_fecha_inicio DATETIME,
@@ -273,7 +278,9 @@ BEGIN
 	CREATE TABLE Pago (
 		pago_codigo DECIMAL(18,0) IDENTITY(1,1) PRIMARY KEY,
 		pago_medio_pago DECIMAL(18,0), -- FK
-		pago_nro_factura DECIMAL(18,0), -- FK
+		pago_fact_tipo NVARCHAR(255), -- FK
+		pago_fact_sucursal DECIMAL(18,0), -- FK
+		pago_fact_nro DECIMAL(18,0), -- FK
 		pago_detalle DECIMAL(18,0), -- FK
 		pago_fecha_hora DATETIME,
 		pago_importe DECIMAL(18,2)
@@ -306,7 +313,7 @@ BEGIN
 
 	ALTER TABLE Pago
 	ADD CONSTRAINT FK_Pago_Factura
-	FOREIGN KEY (pago_nro_factura) REFERENCES Factura(fact_nro);
+	FOREIGN KEY (pago_fact_tipo, pago_fact_nro, pago_fact_sucursal) REFERENCES Factura(fact_tipo, fact_nro, fact_sucursal);
 
 	ALTER TABLE Pago
 	ADD CONSTRAINT FK_Pago_Detalle_Pago
