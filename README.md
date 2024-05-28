@@ -9,7 +9,7 @@ Der inicial:
 
 
 Progreso Migracion (actualizado):
-![Der actual](DER_2024C1_actualizado.jpeg)
+![Der actual](DER_2024C1_migrado.jpeg)
 
 Entregas
 
