@@ -9,7 +9,7 @@ Der inicial:
 
 
 Progreso Migracion (actualizado):
-![Der actual](DER_2024C1_migrado.jpeg)
+![Der actual](DER_2024C1_actualizado.jpeg)
 
 Entregas
 
@@ -44,7 +44,10 @@ Entregas
 - Cambiamos en subcategoria - categoria. Hacemos PK los dos atributos, y agregamos en producto subcategoria + categoria (la pk)
 - Agregamos el nombre del producto que estaba faltante.
 - cambiamos regla_descuento por regl_descuento_aplicable_producto (mejoramos el naming)
+- Agregamos _caja a la PK de factura (o ticket) porque consideramos que es parte de la PK, ya que hay dos facturas con el mismo TIPO, SUCURSAL, Y NRO. Tambien agregamos las FK necesarias en las tablas Envio, Pago, Item Factura.
+- Quitamos la doble referencia entre Pago y detalle pago, ya que consideramos que no es necesaria. Con tener la fK de detalle en la tabla Pago creemos que es suficiente.
 - 
+
 ## TODO
 
 - Agregar un timer en el .bat donde podamos loguear el tiempo que tarda en ejecutar cada uno de los .sql
