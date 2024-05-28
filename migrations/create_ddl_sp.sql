@@ -292,16 +292,13 @@ BEGIN
 	-- Crear la tabla Detalle_Pago
 	CREATE TABLE Detalle_Pago (
 		deta_pago_codigo DECIMAL(18,0) IDENTITY(1,1) PRIMARY KEY,
-		deta_pago_pago DECIMAL(18,0), -- FK
 		deta_pago_cliente DECIMAL(18,0), -- FK
 		deta_pago_tarjeta_nro NVARCHAR(255),
 		deta_pago_tarjeta_cuotas DECIMAL(18,0),
 		deta_pago_tarjeta_fecha_vencimiento DATETIME
 	);
 
-	ALTER TABLE Detalle_Pago
-	ADD CONSTRAINT FK_Detalle_Pago_Pago
-	FOREIGN KEY (deta_pago_pago) REFERENCES Pago(pago_codigo);
+	
 
 
 	ALTER TABLE Detalle_Pago
