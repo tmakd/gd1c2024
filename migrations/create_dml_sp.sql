@@ -189,47 +189,50 @@ BEGIN
 
     END;
 
-   -- BEGIN
---          TODO:  INSERT INTO [GD1C2024_GeDeDe].dbo.Descuento (descu_codigo, descu_medio_pago, descu_descripcion, descu_fecha_inicio, descu_fecha_fin, descu_porcentaje_descuento, descu_tope)
+    -- BEGIN
+    --          TODO:  INSERT INTO [GD1C2024_GeDeDe].dbo.Descuento (descu_codigo, descu_medio_pago, descu_descripcion, descu_fecha_inicio, descu_fecha_fin, descu_porcentaje_descuento, descu_tope)
 
-   -- END;
+    -- END;
 
- BEGIN
+    BEGIN
 
---PAGO
-        INSERT INTO [GD1C2024_GeDeDe].dbo.Pago (pago_medio_pago, pago_fact_tipo, pago_fact_sucursal, pago_fact_caja , pago_fact_nro, pago_fecha_hora, pago_importe)
+    -- PAGO_DETALLE
+            INSERT INTO [GD1C2024_GeDeDe].dbo.Detalle_Pago (deta_pago_cliente, deta_pago_tarjeta_nro, deta_pago_tarjeta_cuotas, deta_pago_tarjeta_fecha_vencimiento)
+            SELECT distinct     [GD1C2024_GeDeDe].dbo.Cliente.clie_codigo,--cliente
+                                [PAGO_TARJETA_NRO],--tarjetaNro
+                                [PAGO_TARJETA_CUOTAS],--cuotas
+                                [PAGO_TARJETA_FECHA_VENC]--vencimiento
+            FROM [GD1C2024].[gd_esquema].[Maestra]
+            LEFT JOIN [GD1C2024_GeDeDe].dbo.Cliente on Cliente.clie_dni = [CLIENTE_DNI]
+			where PAGO_TARJETA_NRO is not null
+        
+
+    --PAGO
+        INSERT INTO [GD1C2024_GeDeDe].dbo.Pago (pago_medio_pago, pago_fact_tipo, pago_fact_sucursal, pago_fact_caja , pago_fact_nro, pago_fecha_hora, pago_importe,pago_detalle)
         SELECT distinct 	[GD1C2024_GeDeDe].dbo.Medio_Pago.medio_pago_codigo,--medio de pago
                             [GD1C2024_GeDeDe].dbo.Factura.fact_tipo,--tipo fact
                             [GD1C2024_GeDeDe].dbo.Factura.fact_sucursal, --fact sucu
                             [CAJA_NUMERO], --fact caja
-                            [GD1C2024_GeDeDe].dbo.Factura.fact_nro, --fact nro */
+                            [GD1C2024_GeDeDe].dbo.Factura.fact_nro, --fact nro 
                             [PAGO_FECHA],-- pago F/H
-                            [PAGO_IMPORTE]--pago importe
+                            [PAGO_IMPORTE],--pago importe
+                            [GD1C2024_GeDeDe].dbo.Detalle_Pago.deta_pago_codigo--detalle
         FROM [GD1C2024].[gd_esquema].[Maestra]
         INNER JOIN [GD1C2024_GeDeDe].dbo.Medio_Pago on PAGO_MEDIO_PAGO = Medio_Pago.medio_pago_detalle
-		INNER JOIN [GD1C2024_GeDeDe].dbo.Sucursal on sucu_nombre = [SUCURSAL_NOMBRE]
-        INNER JOIN [GD1C2024_GeDeDe].dbo.Factura on [TICKET_TIPO_COMPROBANTE] = fact_tipo  and 
-															[sucu_codigo] = fact_sucursal AND
-															[TICKET_NUMERO] = fact_nro 
-        
+        INNER JOIN [GD1C2024_GeDeDe].dbo.Sucursal on sucu_nombre = [SUCURSAL_NOMBRE]
+        INNER JOIN [GD1C2024_GeDeDe].dbo.Factura on [TICKET_TIPO_COMPROBANTE] = fact_tipo  and [sucu_codigo] = fact_sucursal AND [TICKET_NUMERO] = fact_nro 
+        INNER JOIN [GD1C2024_GeDeDe].dbo.Detalle_Pago on  Detalle_Pago.deta_pago_tarjeta_nro = [PAGO_TARJETA_NRO]
         where pago_importe is not null 
 
+    --        UPDATE [GD1C2024_GeDeDe].dbo.Pago (pago_detalle)
 
-
--- PAGO_DETALLE
-        --INSERT INTO [GD1C2024_GeDeDe].dbo.Detalle_Pago (deta_pago_cliente, deta_pago_tarjeta_nro, deta_pago_tarjeta_cuotas, deta_pago_tarjeta_fecha_vencimiento)
-        --SELECT distinct     --cliente
-                            --tarjetaNro
-                            --cuotas
-                            --vencimiento
-     --     TODO:  UPDATE [GD1C2024_GeDeDe].dbo.Pago (pago_detalle)
---          Fijarse si es necesario hacer nullable la tabla antes y aca sacarselo.
-END;
-/*
-    BEGIN
---          TODO:  INSERT INTO [GD1C2024_GeDeDe].dbo.Aplicacion_Descuento (apli_descuento_pago, apli_descuento_codigo_descuento, apli_descuento_monto)
-
+    --          Fijarse si es necesario hacer nullable la tabla antes y aca sacarselo.
     END;
-    */
-END;
+    /*
+        BEGIN
+    --          TODO:  INSERT INTO [GD1C2024_GeDeDe].dbo.Aplicacion_Descuento (apli_descuento_pago, apli_descuento_codigo_descuento, apli_descuento_monto)
+
+        END;
+        */
+    END;
 GO
