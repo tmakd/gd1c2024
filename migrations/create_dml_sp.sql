@@ -223,10 +223,26 @@ BEGIN
 
     END;
 
-    -- BEGIN
-    --          TODO:  INSERT INTO [GD1C2024_GeDeDe].dbo.Descuento (descu_codigo, descu_medio_pago, descu_descripcion, descu_fecha_inicio, descu_fecha_fin, descu_porcentaje_descuento, descu_tope)
-
-    -- END;
+    BEGIN
+    INSERT INTO [GD1C2024_GeDeDe].dbo.Descuento (descu_codigo, descu_medio_pago, descu_descripcion, descu_fecha_inicio, descu_fecha_fin, descu_porcentaje_descuento, descu_tope)
+    SELECT [DESCUENTO_CODIGO]
+      ,Medio_Pago.medio_pago_codigo
+      ,[DESCUENTO_DESCRIPCION]
+      ,[DESCUENTO_FECHA_INICIO]
+      ,[DESCUENTO_FECHA_FIN]
+      ,[DESCUENTO_PORCENTAJE_DESC]
+      ,[DESCUENTO_TOPE]
+     FROM [GD1C2024].[gd_esquema].[Maestra]
+     INNER JOIN [GD1C2024_GeDeDe].dbo.Medio_Pago on [PAGO_MEDIO_PAGO] = Medio_Pago.medio_pago_detalle
+     WHERE DESCUENTO_CODIGO IS NOT NULL
+    GROUP BY [DESCUENTO_CODIGO]
+      ,[DESCUENTO_DESCRIPCION]
+      ,[DESCUENTO_FECHA_INICIO]
+      ,[DESCUENTO_FECHA_FIN]
+      ,[DESCUENTO_PORCENTAJE_DESC]
+      ,[DESCUENTO_TOPE]
+      ,Medio_Pago.medio_pago_codigo
+    END;
 
     BEGIN
 
