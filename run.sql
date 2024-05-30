@@ -354,6 +354,9 @@ GO
 USE GD1C2024_GeDeDe;
 GO
 
+USE GD1C2024_GeDeDe;
+GO
+
 CREATE PROCEDURE GD1C2024_GeDeDe_DML
 AS
 BEGIN
@@ -576,10 +579,26 @@ BEGIN
 
     END;
 
-    -- BEGIN
-    --          TODO:  INSERT INTO [GD1C2024_GeDeDe].dbo.Descuento (descu_codigo, descu_medio_pago, descu_descripcion, descu_fecha_inicio, descu_fecha_fin, descu_porcentaje_descuento, descu_tope)
-
-    -- END;
+    BEGIN
+    INSERT INTO [GD1C2024_GeDeDe].dbo.Descuento (descu_codigo, descu_medio_pago, descu_descripcion, descu_fecha_inicio, descu_fecha_fin, descu_porcentaje_descuento, descu_tope)
+    SELECT [DESCUENTO_CODIGO]
+      ,Medio_Pago.medio_pago_codigo
+      ,[DESCUENTO_DESCRIPCION]
+      ,[DESCUENTO_FECHA_INICIO]
+      ,[DESCUENTO_FECHA_FIN]
+      ,[DESCUENTO_PORCENTAJE_DESC]
+      ,[DESCUENTO_TOPE]
+     FROM [GD1C2024].[gd_esquema].[Maestra]
+     INNER JOIN [GD1C2024_GeDeDe].dbo.Medio_Pago on [PAGO_MEDIO_PAGO] = Medio_Pago.medio_pago_detalle
+     WHERE DESCUENTO_CODIGO IS NOT NULL
+    GROUP BY [DESCUENTO_CODIGO]
+      ,[DESCUENTO_DESCRIPCION]
+      ,[DESCUENTO_FECHA_INICIO]
+      ,[DESCUENTO_FECHA_FIN]
+      ,[DESCUENTO_PORCENTAJE_DESC]
+      ,[DESCUENTO_TOPE]
+      ,Medio_Pago.medio_pago_codigo
+    END;
 
     BEGIN
 
@@ -603,7 +622,7 @@ BEGIN
                             [GD1C2024_GeDeDe].dbo.Factura.fact_nro, --fact nro
                             [PAGO_FECHA],-- pago F/H
                             [PAGO_IMPORTE],--pago importe
-                            [GD1C2024_GeDeDe].dbo.Detalle_Pago.deta_pago_codigo--detalle
+                            [GD1C2024_GeDeDe].dbo.Detalle_Pago.deta_pago_codigo --detalle
         FROM [GD1C2024].[gd_esquema].[Maestra]
         INNER JOIN [GD1C2024_GeDeDe].dbo.Medio_Pago on PAGO_MEDIO_PAGO = Medio_Pago.medio_pago_detalle
         INNER JOIN [GD1C2024_GeDeDe].dbo.Sucursal on sucu_nombre = [SUCURSAL_NOMBRE]
@@ -611,16 +630,31 @@ BEGIN
         INNER JOIN [GD1C2024_GeDeDe].dbo.Detalle_Pago on  Detalle_Pago.deta_pago_tarjeta_nro = [PAGO_TARJETA_NRO]
         where pago_importe is not null
 
-    --        UPDATE [GD1C2024_GeDeDe].dbo.Pago (pago_detalle)
-
-    --          Fijarse si es necesario hacer nullable la tabla antes y aca sacarselo.
     END;
-    /*
-        BEGIN
-    --          TODO:  INSERT INTO [GD1C2024_GeDeDe].dbo.Aplicacion_Descuento (apli_descuento_pago, apli_descuento_codigo_descuento, apli_descuento_monto)
-
-        END;
-        */
+    BEGIN
+    INSERT INTO [GD1C2024_GeDeDe].dbo.Aplicacion_Descuento (apli_descuento_pago, apli_descuento_codigo_descuento, apli_descuento_monto)
+    SELECT 	Pago.pago_codigo,
+            [DESCUENTO_CODIGO]
+          ,[PAGO_DESCUENTO_APLICADO]
+      FROM [GD1C2024].[gd_esquema].[Maestra]
+      inner join Medio_Pago on
+      [PAGO_MEDIO_PAGO] = Medio_Pago.medio_pago_detalle
+      inner join Medio_Pago as TipoMP on
+      [PAGO_TIPO_MEDIO_PAGO] = Medio_Pago.medio_pago_tipo
+      inner join Detalle_Pago on PAGO_TARJETA_NRO = Detalle_Pago.deta_pago_tarjeta_nro and PAGO_TARJETA_CUOTAS = Detalle_Pago.deta_pago_tarjeta_cuotas and PAGO_TARJETA_FECHA_VENC = Detalle_Pago.deta_pago_tarjeta_fecha_vencimiento
+      INNER JOIN Pago ON
+            [PAGO_FECHA] = Pago.pago_fecha_hora
+          and [GD1C2024].[gd_esquema].[Maestra].[PAGO_IMPORTE] = Pago.pago_importe
+          and Medio_Pago.medio_pago_detalle = [GD1C2024].[gd_esquema].[Maestra].[PAGO_MEDIO_PAGO]
+          and [GD1C2024].[gd_esquema].[Maestra].[PAGO_TIPO_MEDIO_PAGO] = TipoMP.medio_pago_tipo
+          and [GD1C2024].[gd_esquema].[Maestra].[PAGO_TARJETA_NRO] = Detalle_Pago.deta_pago_tarjeta_nro
+          and [PAGO_TARJETA_CUOTAS] = Detalle_Pago.deta_pago_tarjeta_cuotas
+          and [PAGO_TARJETA_FECHA_VENC] = Detalle_Pago.deta_pago_tarjeta_fecha_vencimiento
+      WHERE [DESCUENTO_CODIGO] IS NOT NULL AND PAGO_DESCUENTO_APLICADO IS NOT NULL
+      GROUP BY [DESCUENTO_CODIGO],
+            Pago.pago_codigo
+          ,[PAGO_DESCUENTO_APLICADO]
+    END;
     END;
 GO
 
