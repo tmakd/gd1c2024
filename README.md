@@ -50,4 +50,14 @@ Entregas
 
 ## TODO
 
-- Agregar un timer en el .bat donde podamos loguear el tiempo que tarda en ejecutar cada uno de los .sql
+- Reordenar el script de creacion inicial:
+  1. Creacion de tablas
+  2. Creacion de constraints PK (con alter table)
+  3. Creacion de constraints FK
+  4. Creacion de indices
+  5. Creacion de triggers
+- Modelo de BI (este branch)
+  1. Crear el DER
+  2. Creacion de tablas BI_nombre_tabla
+  3. Migracion de los datos
+  4. Crear Vistas
