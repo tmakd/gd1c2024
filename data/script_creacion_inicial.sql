@@ -1,23 +1,84 @@
 USE GD1C2024;
 GO
 
+IF OBJECT_ID('GeDeDe.Aplicacion_Descuento', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Aplicacion_Descuento;
+
+IF OBJECT_ID('GeDeDe.Descuento', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Descuento;
+
+IF OBJECT_ID('GeDeDe.Pago', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Pago;
+
+IF OBJECT_ID('GeDeDe.Medio_Pago', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Medio_Pago;
+
+IF OBJECT_ID('GeDeDe.Detalle_Pago', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Detalle_Pago;
+
+IF OBJECT_ID('GeDeDe.Item_Factura', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Item_Factura;
+
+IF OBJECT_ID('GeDeDe.Promocion_Producto', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Promocion_Producto;
+
+IF OBJECT_ID('GeDeDe.Promocion', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Promocion;
+
+IF OBJECT_ID('GeDeDe.Regla', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Regla;
+
+IF OBJECT_ID('GeDeDe.Producto', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Producto;
+
+IF OBJECT_ID('GeDeDe.Marca', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Marca;
+
+IF OBJECT_ID('GeDeDe.Subcategoria', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Subcategoria;
+
+IF OBJECT_ID('GeDeDe.Categoria', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Categoria;
+
+IF OBJECT_ID('GeDeDe.Envio', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Envio;
+
+IF OBJECT_ID('GeDeDe.Cliente', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Cliente;
+
+IF OBJECT_ID('GeDeDe.Factura', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Factura;
+
+IF OBJECT_ID('GeDeDe.Empleado', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Empleado;
+
+IF OBJECT_ID('GeDeDe.Caja', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Caja;
+
+IF OBJECT_ID('GeDeDe.Tipo_Caja', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Tipo_Caja;
+
+IF OBJECT_ID('GeDeDe.Sucursal', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Sucursal;
+
+IF OBJECT_ID('GeDeDe.Super', 'U') IS NOT NULL
+    DROP TABLE GeDeDe.Super;
+GO
+
+IF OBJECT_ID('[GeDeDe].CREATE_DDL', 'P') IS NOT NULL
+    DROP PROCEDURE [GeDeDe].CREATE_DDL;
+
+IF OBJECT_ID('[GeDeDe].CREATE_DML', 'P') IS NOT NULL
+    DROP PROCEDURE [GeDeDe].CREATE_DML;
+GO
+
+IF EXISTS (SELECT * FROM sys.schemas WHERE name = 'GeDeDe')
+    DROP SCHEMA GeDeDe;
+GO
+
+
 CREATE SCHEMA [GeDeDe];
 GO
-
---ELIMINAR:
-/*IF EXISTS (SELECT * FROM sys.databases WHERE name = 'GD1C2024_GeDeDe')
-BEGIN
-    -- Si la base de datos de migracion existe, elimanala. antes hago un alter database para cerrar las conexiones
-    ALTER DATABASE GD1C2024_GeDeDe SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE GD1C2024_GeDeDe;
-END
-
--- Crear una base de datos
-CREATE DATABASE GD1C2024_GeDeDe;
-GO
-
-USE GD1C2024_GeDeDe;
-GO*/
 
 CREATE PROCEDURE [GeDeDe].[CREATE_DDL]
 AS
