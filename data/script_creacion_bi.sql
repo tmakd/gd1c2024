@@ -1,7 +1,16 @@
 USE GD1C2024;
 
 PRINT 'Inicializando la creacion del modelo de Business Intelligence'
+GO
 
+IF OBJECT_ID('[GeDeDe].[BI_CLEAN]', 'P') IS NOT NULL
+    DROP PROCEDURE [GeDeDe].[BI_CLEAN];
+GO
+
+
+CREATE PROCEDURE [GeDeDe].[BI_CLEAN]
+AS
+BEGIN
 --DROP PREVENTIVO DE FUNCIONES----------------------------------------------------------------
 IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'obtenerRangoEtario')
 	DROP FUNCTION GeDeDe.obtenerRangoEtario
@@ -41,51 +50,47 @@ IF EXISTS (SELECT * FROM sys.tables WHERE name = 'BI_dim_Producto')
     DROP TABLE GeDeDe.BI_dim_Producto;
 
 -- DROPS PREVENTIVOS DE VISTAS----------------------------------------------------------------
-IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_TicketPromedioMensual' AND schema_id = SCHEMA_ID('GeDeDe'))
-    DROP VIEW [GeDeDe].[vw_TicketPromedioMensual];
-GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_TicketPromedioMensual' AND schema_id = SCHEMA_ID('GeDeDe'))
+    DROP VIEW [GeDeDe].[vw_BI_TicketPromedioMensual];
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_CantidadUnidadesPromedio' AND schema_id = SCHEMA_ID('GeDeDe'))
+    DROP VIEW [GeDeDe].[vw_BI_CantidadUnidadesPromedio];
 
-IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_CantidadUnidadesPromedio' AND schema_id = SCHEMA_ID('GeDeDe'))
-    DROP VIEW [GeDeDe].[vw_CantidadUnidadesPromedio];
-GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_VentasPorRangoEtario' AND schema_id = SCHEMA_ID('GeDeDe'))
+    DROP VIEW [GeDeDe].[vw_BI_VentasPorRangoEtario];
 
-IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_VentasPorRangoEtario' AND schema_id = SCHEMA_ID('GeDeDe'))
-    DROP VIEW [GeDeDe].[vw_VentasPorRangoEtario];
-GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_VentasPorProducto' AND schema_id = SCHEMA_ID('GeDeDe'))
+    DROP VIEW [GeDeDe].[vw_BI_VentasPorProducto];
 
-IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_VentasPorProducto' AND schema_id = SCHEMA_ID('GeDeDe'))
-    DROP VIEW [GeDeDe].[vw_VentasPorProducto];
-GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_PorcentajeVentasPorRangoEtarioYCaja' AND schema_id = SCHEMA_ID('GeDeDe'))
+    DROP VIEW [GeDeDe].[vw_BI_PorcentajeVentasPorRangoEtarioYCaja];
 
-IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_PorcentajeVentasPorRangoEtarioYCaja' AND schema_id = SCHEMA_ID('GeDeDe'))
-    DROP VIEW [GeDeDe].[vw_PorcentajeVentasPorRangoEtarioYCaja];
-GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_CantidadVentasPorTurnoLocalidadMes' AND schema_id = SCHEMA_ID('GeDeDe'))
+    DROP VIEW [GeDeDe].[vw_BI_CantidadVentasPorTurnoLocalidadMes];
 
-IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_CantidadVentasPorTurnoLocalidadMes' AND schema_id = SCHEMA_ID('GeDeDe'))
-    DROP VIEW [GeDeDe].[vw_CantidadVentasPorTurnoLocalidadMes];
-GO
-
-IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_PorcentajeDescuentoPorMesAnio' AND schema_id = SCHEMA_ID('GeDeDe'))
-    DROP VIEW [GeDeDe].[vw_PorcentajeDescuentoPorMesAnio];
-GO
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_PorcentajeDescuentoPorMesAnio' AND schema_id = SCHEMA_ID('GeDeDe'))
+    DROP VIEW [GeDeDe].[vw_BI_PorcentajeDescuentoPorMesAnio];
 
 --DROP PREVENTIVO DE PROCEDURES---------------------------------------------------------------
 
 IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'BI_Migrar_Medios_de_Pago' and schema_id = SCHEMA_ID('GeDeDe'))
 	DROP PROCEDURE [GeDeDe].[BI_Migrar_Medios_de_Pago];
-GO
+
 IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'BI_Migrar_Sucursales' and schema_id = SCHEMA_ID('GeDeDe'))
 	DROP PROCEDURE [GeDeDe].[BI_Migrar_Sucursales];
-GO
+
 IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'BI_Migrar_Ventas' and schema_id = SCHEMA_ID('GeDeDe'))
 	DROP PROCEDURE [GeDeDe].[BI_Migrar_Ventas];
-GO
+
 IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'BI_Migrar_Envios' and schema_id = SCHEMA_ID('GeDeDe'))
 	DROP PROCEDURE [GeDeDe].[BI_Migrar_Envios];
-GO
+
 IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'BI_Migrar_Pagos' and schema_id = SCHEMA_ID('GeDeDe'))
 	DROP PROCEDURE [GeDeDe].[BI_Migrar_Pagos];
+
+END
 GO
+
+EXECUTE [GeDeDe].[BI_CLEAN]
 ----------------------------------------------------------------------------------------------
 
 --CREACIÓN DE FUNCIONES AUXILIARES------------------------------------------------------------
@@ -95,6 +100,8 @@ GO
     @param una fecha de nacimiento (datetime2)
     @returns la edad al dia de hoy (int)
 */
+
+
 CREATE FUNCTION GeDeDe.obtenerEdad(@dateofbirth datetime2(3))
 RETURNS int
 AS
@@ -112,7 +119,6 @@ END
 	RETURN @age;
 END
 GO
-
 /*
  Rango etario empleados/clientes
 
@@ -120,10 +126,10 @@ GO
     @returns rango etario al que pertenece
 */
 CREATE FUNCTION GeDeDe.obtenerRangoEtario (@age int)
-RETURNS varchar(10)
+RETURNS NVARCHAR(255)
 AS
 BEGIN
-	DECLARE @returnvalue varchar(10);
+	DECLARE @returnvalue NVARCHAR(255);
 
 IF (@age < 25)
 BEGIN
@@ -152,10 +158,10 @@ GO
     @returns rango turno al que pertenece
 */
 CREATE FUNCTION GeDeDe.obtenerTurnos (@fecha datetime)
-RETURNS varchar(50)
+RETURNS NVARCHAR(255)
 AS
 BEGIN
-    DECLARE @returnvalue varchar(50);
+    DECLARE @returnvalue NVARCHAR(255);
     DECLARE @hora int;
 
     SET @hora = DATEPART(hour, @fecha);
@@ -198,14 +204,14 @@ CREATE TABLE [GeDeDe].[BI_dim_Tiempo] (
     Cuatrimestre INT,
     Mes INT
 );
-
+GO
 -- Tabla dimensional de ubicación
 CREATE TABLE [GeDeDe].[BI_dim_Ubicacion] (
     CODIGO_UBICACION INT IDENTITY(1,1) PRIMARY KEY,
     Provincia NVARCHAR(255),
     Localidad NVARCHAR(255)
 );
-
+GO
 -- Tabla dimensional de sucursal
 CREATE TABLE [GeDeDe].[BI_dim_Sucursal] (
     CODIGO_SUCURSAL DECIMAL(18,0) PRIMARY KEY,
@@ -213,26 +219,26 @@ CREATE TABLE [GeDeDe].[BI_dim_Sucursal] (
     CODIGO_UBICACION INT,
     FOREIGN KEY (CODIGO_UBICACION) REFERENCES [GeDeDe].[BI_dim_Ubicacion](CODIGO_UBICACION)
 );
-
+GO
 -- Tabla dimensional de rango etario
 CREATE TABLE [GeDeDe].[BI_dim_Rango_Etario] (
     CODIGO_RANGO_ETARIO INT IDENTITY(1,1) PRIMARY KEY,
     Descripcion NVARCHAR(255)
 );
-
+GO
 -- Tabla dimensional de turnos
 CREATE TABLE [GeDeDe].[BI_dim_Turnos] (
     CODIGO_TURNO INT IDENTITY(1,1) PRIMARY KEY,
     Turno NVARCHAR(255)
 );
-
+GO
 -- Tabla dimensional de medio de pago
 CREATE TABLE [GeDeDe].[BI_dim_Medio_Pago] (
     CODIGO_MEDIO_PAGO DECIMAL(18,0) PRIMARY KEY,
     Descripcion NVARCHAR(255),
     Tipo NVARCHAR(255)
 );
-
+GO
 -- Tabla dimensional de productos (categoria/subcategoria implicita)
 CREATE TABLE [GeDeDe].[BI_dim_Producto] (
     CODIGO_PRODUCTO INT IDENTITY(1,1) PRIMARY KEY,
@@ -241,34 +247,35 @@ CREATE TABLE [GeDeDe].[BI_dim_Producto] (
     Categoria NVARCHAR(255),
     Subcategoria NVARCHAR(255)
 );
-
-
+GO
 --CREACIÓN DE TABLAS FÁCTICAS--
 CREATE TABLE [GeDeDe].[BI_fact_Ventas] (
-    CODIGO_VENTA INT IDENTITY(1,1) PRIMARY KEY,
-    CODIGO_TIEMPO INT,
-    CODIGO_SUCURSAL DECIMAL(18,0),
-    CODIGO_PRODUCTO INT,
-    CODIGO_MEDIO_PAGO DECIMAL(18,0),
-    CODIGO_TURNO INT,
-    CODIGO_UBICACION INT,
-    tipoCaja NVARCHAR(50),
-    descuento DECIMAL(12, 2),
-    CODIGO_RANGO_ETARIO_VENDEDOR INT,
-    Cantidad INT,
-    Total DECIMAL(18, 2),
-    FOREIGN KEY (CODIGO_TIEMPO) REFERENCES [GeDeDe].[BI_dim_Tiempo](CODIGO_TIEMPO),
-    FOREIGN KEY (CODIGO_SUCURSAL) REFERENCES [GeDeDe].[BI_dim_Sucursal](CODIGO_SUCURSAL),
-    FOREIGN KEY (CODIGO_PRODUCTO) REFERENCES [GeDeDe].[BI_dim_Producto](CODIGO_PRODUCTO),
-    FOREIGN KEY (CODIGO_MEDIO_PAGO) REFERENCES [GeDeDe].[BI_dim_Medio_Pago](CODIGO_MEDIO_PAGO),
-    FOREIGN KEY (CODIGO_TURNO) REFERENCES [GeDeDe].[BI_dim_Turnos](CODIGO_TURNO),
-    FOREIGN KEY (CODIGO_UBICACION) REFERENCES [GeDeDe].[BI_dim_Ubicacion](CODIGO_UBICACION),
-    FOREIGN KEY (CODIGO_RANGO_ETARIO_VENDEDOR) REFERENCES [GeDeDe].[BI_dim_Rango_Etario](CODIGO_RANGO_ETARIO)
+    CODIGO_TIEMPO INT NOT NULL,
+    CODIGO_UBICACION INT NOT NULL,
+	CODIGO_MEDIO_PAGO DECIMAL(18,0) NOT NULL,
+    CODIGO_TURNO INT NOT NULL,
+    CODIGO_RANGO_ETARIO_VENDEDOR INT NOT NULL,
+    CODIGO_PRODUCTO INT NOT NULL,
+	CANTIDAD INT,
+    TIPO_CAJA NVARCHAR(255),
+    DESCUENTO_APLICADO DECIMAL(18, 2),
+    TOTAL DECIMAL(18, 2)
 );
+
+ALTER TABLE [GeDeDe].[BI_fact_Ventas]
+ADD CONSTRAINT PK_BI_fact_Ventas PRIMARY KEY (CODIGO_TIEMPO, CODIGO_UBICACION, CODIGO_MEDIO_PAGO, CODIGO_TURNO, CODIGO_RANGO_ETARIO_VENDEDOR, CODIGO_PRODUCTO);
+
+ALTER TABLE [GeDeDe].[BI_fact_Ventas]
+ADD CONSTRAINT FK_BI_fact_Ventas_CODIGO_TIEMPO FOREIGN KEY (CODIGO_TIEMPO) REFERENCES [GeDeDe].[BI_dim_Tiempo](CODIGO_TIEMPO),
+    CONSTRAINT FK_BI_fact_Ventas_CODIGO_UBICACION FOREIGN KEY (CODIGO_UBICACION) REFERENCES [GeDeDe].[BI_dim_Ubicacion](CODIGO_UBICACION),
+    CONSTRAINT FK_BI_fact_Ventas_CODIGO_MEDIO_PAGO FOREIGN KEY (CODIGO_MEDIO_PAGO) REFERENCES [GeDeDe].[BI_dim_Medio_Pago](CODIGO_MEDIO_PAGO),
+    CONSTRAINT FK_BI_fact_Ventas_CODIGO_TURNO FOREIGN KEY (CODIGO_TURNO) REFERENCES [GeDeDe].[BI_dim_Turnos](CODIGO_TURNO),
+    CONSTRAINT FK_BI_fact_Ventas_CODIGO_RANGO_ETARIO_VENDEDOR FOREIGN KEY (CODIGO_RANGO_ETARIO_VENDEDOR) REFERENCES [GeDeDe].[BI_dim_Rango_Etario](CODIGO_RANGO_ETARIO),
+    CONSTRAINT FK_BI_fact_Ventas_CODIGO_PRODUCTO FOREIGN KEY (CODIGO_PRODUCTO) REFERENCES [GeDeDe].[BI_dim_Producto](CODIGO_PRODUCTO);
 
 --CREACION DE VISTAS--
 GO
-CREATE VIEW [GeDeDe].[vw_TicketPromedioMensual] AS
+CREATE VIEW [GeDeDe].[vw_BI_TicketPromedioMensual] AS
 SELECT
     U.Localidad,
     T.Año,
@@ -284,7 +291,7 @@ GROUP BY
     T.Mes;
 GO
 -- Vista para la Cantidad Unidades Promedio
-CREATE VIEW [GeDeDe].[vw_CantidadUnidadesPromedio] AS
+CREATE VIEW [GeDeDe].[vw_BI_CantidadUnidadesPromedio] AS
 SELECT
     T.Año,
     T.Cuatrimestre,
@@ -301,7 +308,7 @@ GROUP BY
 
 GO
 -- Vista para las Ventas por Rango Etario
-CREATE VIEW [GeDeDe].[vw_VentasPorRangoEtario] AS
+CREATE VIEW [GeDeDe].[vw_BI_VentasPorRangoEtario] AS
 SELECT
     R.Descripcion AS RangoEtario,
     T.Año,
@@ -318,7 +325,7 @@ GROUP BY
 
 GO
 -- Vista para las Ventas por Producto
-CREATE VIEW [GeDeDe].[vw_VentasPorProducto] AS
+CREATE VIEW [GeDeDe].[vw_BI_VentasPorProducto] AS
 SELECT
     P.Nombre AS Producto,
     P.Categoria,
@@ -338,80 +345,6 @@ GROUP BY
     T.Cuatrimestre;
 
 GO
--- Vista para el Porcentaje Anual de Ventas por Rango Etario del Empleado y Tipo de Caja por Cuatrimestre
-CREATE VIEW [GeDeDe].[vw_PorcentajeVentasPorRangoEtarioYCaja] AS
-WITH VentasPorRangoEtario AS (
-    SELECT
-        R.Descripcion AS RangoEtario,
-        F.TipoCaja,
-        T.Año,
-        T.Cuatrimestre,
-        SUM(F.Total) AS VentasPorRangoEtarioYCaja
-    FROM
-        [GeDeDe].[BI_fact_Ventas] F
-    JOIN [GeDeDe].[BI_dim_Rango_Etario] R ON F.CODIGO_RANGO_ETARIO_VENDEDOR = R.CODIGO_RANGO_ETARIO
-    JOIN [GeDeDe].[BI_dim_Tiempo] T ON F.CODIGO_TIEMPO = T.CODIGO_TIEMPO
-    GROUP BY
-        R.Descripcion,
-        F.TipoCaja,
-        T.Año,
-        T.Cuatrimestre
-),
-VentasTotalesAnuales AS (
-    SELECT
-        T.Año,
-        T.Cuatrimestre,
-        SUM(F.Total) AS VentasTotalesAnuales
-    FROM
-        [GeDeDe].[BI_fact_Ventas] F
-    JOIN [GeDeDe].[BI_dim_Tiempo] T ON F.CODIGO_TIEMPO = T.CODIGO_TIEMPO
-    GROUP BY
-        T.Año,
-        T.Cuatrimestre
-)
-SELECT
-    RangoEtario,
-    TipoCaja,
-    V.Año,
-    V.Cuatrimestre,
-    CAST((V.VentasPorRangoEtarioYCaja * 100.0 / T.VentasTotalesAnuales) AS DECIMAL(10, 2)) AS PorcentajeVentas
-FROM
-    VentasPorRangoEtario V
-JOIN VentasTotalesAnuales T ON V.Año = T.Año AND V.Cuatrimestre = T.Cuatrimestre;
-
-GO
--- Vista para la Cantidad de Ventas por Turno para cada Localidad según el Mes de cada Año
-CREATE VIEW [GeDeDe].[vw_CantidadVentasPorTurnoLocalidadMes] AS
-SELECT
-    U.Localidad,
-    T.Año,
-    T.Mes,
-    Tr.Turno,
-    COUNT(F.CODIGO_VENTA) AS CantidadVentas
-FROM
-    [GeDeDe].[BI_fact_Ventas] F
-JOIN [GeDeDe].[BI_dim_Tiempo] T ON F.CODIGO_TIEMPO = T.CODIGO_TIEMPO
-JOIN [GeDeDe].[BI_dim_Turnos] Tr ON F.CODIGO_TURNO = Tr.CODIGO_TURNO
-JOIN [GeDeDe].[BI_dim_Ubicacion] U ON F.CODIGO_UBICACION = U.CODIGO_UBICACION
-GROUP BY
-    U.Localidad,
-    T.Año,
-    T.Mes,
-    Tr.Turno;
-
-GO
--- Vista para el Porcentaje de Descuento Aplicado según el Total de los Tickets por Mes de cada Año
-CREATE VIEW [GeDeDe].[vw_PorcentajeDescuentoPorMesAnio] AS
-SELECT
-    T.Año,
-    T.Mes,
-    SUM(F.Descuento) / SUM(F.Total) * 100 AS PorcentajeDescuento
-FROM
-    [GeDeDe].[BI_fact_Ventas] F
-JOIN [GeDeDe].[BI_dim_Tiempo] T ON F.CODIGO_TIEMPO = T.CODIGO_TIEMPO
-GROUP BY
-    T.Año,
-    T.Mes;
 
 GO
 -- Índice para BI_fact_Ventas por CODIGO_TIEMPO y CODIGO_UBICACION
@@ -424,8 +357,9 @@ GO
 CREATE INDEX IX_BI_fact_Ventas_TIEMPO_TURNO ON GeDeDe.BI_fact_Ventas (CODIGO_TIEMPO, CODIGO_TURNO);
 GO
 
---CREACION PROCEDURES DE MIGRACION--
 
+
+--CREACION PROCEDURES DE MIGRACION--
 
 CREATE PROCEDURE [GeDeDe].[BI_Migrar_Medios_de_Pago]
 AS
@@ -448,7 +382,7 @@ BEGIN
 	DECLARE @CODIGO_UBICACION INT
 	
 	OPEN sucursal_cursor
-	FETCH sucursal_cursor into @Sucu_Codigo, @Sucu_Nombre, @Sucu_Localidad, @Sucu_Provincia;
+	FETCH NEXT sucursal_cursor into @Sucu_Codigo, @Sucu_Nombre, @Sucu_Localidad, @Sucu_Provincia;
 	
 	WHILE(@@FETCH_STATUS = 0)
 		BEGIN
@@ -461,7 +395,7 @@ BEGIN
 
 			INSERT INTO [GeDeDe].[BI_dim_Sucursal] (CODIGO_SUCURSAL, Nombre, CODIGO_UBICACION) VALUES (@Sucu_Codigo, @Sucu_Nombre, @CODIGO_UBICACION)
 			
-			FETCH sucursal_cursor into @Sucu_Codigo, @Sucu_Nombre, @Sucu_Localidad, @Sucu_Provincia;
+			FETCH NEXT sucursal_cursor into @Sucu_Codigo, @Sucu_Nombre, @Sucu_Localidad, @Sucu_Provincia;
 		END
 
 	CLOSE sucursal_cursor;
@@ -473,14 +407,29 @@ CREATE PROCEDURE [GeDeDe].[BI_Migrar_Ventas]
 AS
 BEGIN
 	print 'Migracion de Ventas'
-	DECLARE @Venta_ID INT, @Producto_ID INT, @Cliente_ID INT, @Empleado_ID INT, @Caja_ID INT, @Localidad_ID INT, @Fecha_Hora_Venta DATE, @Cantidad INT, @Precio DECIMAL(10, 2), @Descuento DECIMAL(10, 2);
-    DECLARE @Edad INT, @Rango_Etario VARCHAR(50), @Turno_ID INT;
+	DECLARE @Producto_ID INT, @Cliente_ID INT, @Empleado_ID INT, @Caja_ID INT, @Localidad_ID INT, @Fecha_Hora_Venta DATE, @Cantidad INT, @Precio DECIMAL(10, 2), @Descuento DECIMAL(10, 2);
+    DECLARE @Edad INT, @Rango_Etario VARCHAR(50), @Turno NVARCHAR(255);
 
 	DECLARE ventas_cursor CURSOR FOR
-		SELECT * FROM Item_Factura I
-			join Factura F on F.fact_tipo+F.fact_sucursal+F.fact_nro+F.fact_caja = I.item_fact_tipo+I.item_fact_sucursal+I.item_fact_nro+I.item_fact_caja
-			/*join Cliente c on F.fact_*/
+		SELECT fact_fecha_hora, I.item_producto
+			FROM [GeDeDe].[Item_Factura] I
+				JOIN [GeDeDe].[Factura] F ON CAST(F.fact_tipo AS NVARCHAR(255)) + CAST(F.fact_sucursal AS NVARCHAR(255)) + CAST(F.fact_nro AS NVARCHAR(255)) + CAST(F.fact_caja AS NVARCHAR(255))
+                          = CAST(I.item_fact_tipo AS NVARCHAR(255)) + CAST(I.item_fact_sucursal AS NVARCHAR(255)) + CAST(I.item_fact_nro AS NVARCHAR(255)) + CAST(I.item_fact_caja AS NVARCHAR(255))
+				JOIN [GeDeDe].[Cliente] C ON F.fact_cliente = C.clie_codigo
+				JOIN [GeDeDe].[Empleado] E ON F.fact_vendedor = E.empl_codigo;
+				-- JOIN [GeDeDe].
+
+	OPEN ventas_cursor;
+
+	-- FETCH NEXT ventas_cursor into 
 	
+	WHILE (@@FETCH_STATUS = 0)
+		BEGIN
+			print 'migrando ventas'
+		END
+
+	CLOSE ventas_cursor;
+	DEALLOCATE ventas_cursor;
 END
 GO
 
@@ -497,15 +446,6 @@ BEGIN
  print 'Migracion de Pagos'
 END
 GO
-
-
-
-
-
-
-
-
-
 
 
 
