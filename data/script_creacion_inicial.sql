@@ -681,12 +681,19 @@ BEGIN
 
     BEGIN
 	print 'Cargando tabla Detalle_Pago'
+
+	
             INSERT INTO [GD1C2024].[GeDeDe].[Detalle_Pago] (deta_pago_cliente, deta_pago_tarjeta_nro, deta_pago_tarjeta_cuotas, deta_pago_tarjeta_fecha_vencimiento)
-            SELECT distinct     [GD1C2024].[GeDeDe].Cliente.clie_codigo,--cliente
+            SELECT distinct (
+						SELECT c.clie_codigo
+						FROM Cliente c
+							join #Ticket_Cliente tc on tc.CLIENTE_DNI = c.clie_dni
+						where tc.TICKET_TIPO_COMPROBANTE = m.TICKET_TIPO_COMPROBANTE and tc.SUCURSAL_NOMBRE = m.SUCURSAL_NOMBRE and tc.TICKET_NUMERO = m.TICKET_NUMERO
+								),--cliente
                                 [PAGO_TARJETA_NRO],--tarjetaNro
                                 [PAGO_TARJETA_CUOTAS],--cuotas
                                 [PAGO_TARJETA_FECHA_VENC]--vencimiento
-            FROM [GD1C2024].[gd_esquema].[Maestra]
+            FROM [GD1C2024].[gd_esquema].[Maestra] m
             LEFT JOIN [GD1C2024].[GeDeDe].Cliente on Cliente.clie_dni = [CLIENTE_DNI]
 			where PAGO_TARJETA_NRO is not null
 
