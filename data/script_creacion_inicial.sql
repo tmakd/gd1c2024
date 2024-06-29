@@ -414,7 +414,7 @@ FOREIGN KEY (apli_descuento_codigo_descuento) REFERENCES [GeDeDe].Descuento(desc
 END;
 GO
 
-create PROCEDURE [GeDeDe].[CREATE_DML]
+CREATE PROCEDURE [GeDeDe].[CREATE_DML]
 AS
 BEGIN
 	print 'Cargando tabla Super'
@@ -710,7 +710,7 @@ BEGIN
 
     END;
     BEGIN
-	print 'Cargando tabla [Aplicacion_Descuento]'
+	print 'Cargando tabla Aplicacion_Descuento'
     INSERT INTO [GD1C2024].[GeDeDe].[Aplicacion_Descuento] (apli_descuento_pago, apli_descuento_codigo_descuento, apli_descuento_monto)
     SELECT 	Pago.pago_codigo,
             [DESCUENTO_CODIGO]
