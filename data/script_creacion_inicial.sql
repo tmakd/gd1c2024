@@ -573,13 +573,21 @@ BEGIN
 
     END;
 	print 'Cargando tabla Factura'
+	
     BEGIN
+		SELECT TICKET_TIPO_COMPROBANTE, TICKET_NUMERO, [CLIENTE_DNI], SUCURSAL_NOMBRE into #Ticket_Cliente
+		FROM [GD1C2024].[gd_esquema].[Maestra]
+		WHERE [CLIENTE_DNI] IS NOT NULL AND [TICKET_TIPO_COMPROBANTE] IS NOT NULL AND [TICKET_NUMERO] IS NOT NULL
+
         INSERT INTO [GD1C2024].[GeDeDe].[Factura] (fact_nro, fact_sucursal, fact_caja, fact_vendedor, fact_cliente, fact_fecha_hora, fact_tipo, fact_subtotal_productos, fact_total_descuento_aplicado, fact_descuento_aplicado_mp, fact_total_envio, fact_total_ticket)
         SELECT distinct [TICKET_NUMERO] -- fact_nro
         	  ,[GD1C2024].[GeDeDe].Sucursal.sucu_codigo -- fact_sucursal
         	  ,[CAJA_NUMERO]	-- fact_caja
         	  ,[GD1C2024].[GeDeDe].Empleado.empl_codigo	-- fact_vendedor
-			  ,(SELECT c.clie_codigo FROM [GD1C2024].[GeDeDe].[Cliente] c where c.clie_dni = [CLIENTE_DNI])
+			  ,(SELECT c.clie_codigo 
+			  FROM #Ticket_Cliente tc
+				JOIN [GD1C2024].[GeDeDe].[Cliente] c on c.clie_dni = tc.CLIENTE_DNI
+			  WHERE tc.TICKET_TIPO_COMPROBANTE = m1.TICKET_TIPO_COMPROBANTE and tc.TICKET_NUMERO = m1.TICKET_NUMERO and tc.SUCURSAL_NOMBRE = m1.SUCURSAL_NOMBRE)
               ,[TICKET_FECHA_HORA] -- fact_fecha_hora
               ,[TICKET_TIPO_COMPROBANTE] -- fact_tipo
               ,[TICKET_SUBTOTAL_PRODUCTOS] -- fact_subtotal_productos
@@ -588,7 +596,7 @@ BEGIN
               ,[TICKET_TOTAL_ENVIO] -- fact_total_envio
               ,[TICKET_TOTAL_TICKET] -- fact_total_ticket
 
-        	   FROM [GD1C2024].[gd_esquema].[Maestra]
+        	   FROM [GD1C2024].[gd_esquema].[Maestra] m1
         	   inner join [GD1C2024].[GeDeDe].Empleado on [EMPLEADO_DNI] = Empleado.empl_dni
         	   inner join [GD1C2024].[GeDeDe].Sucursal on [SUCURSAL_NOMBRE] = Sucursal.sucu_nombre
 
@@ -702,7 +710,7 @@ BEGIN
 
     END;
     BEGIN
-	print 'Cargando tabla [Aplicacion_Descuento]'
+	print 'Cargando tabla Aplicacion_Descuento'
     INSERT INTO [GD1C2024].[GeDeDe].[Aplicacion_Descuento] (apli_descuento_pago, apli_descuento_codigo_descuento, apli_descuento_monto)
     SELECT 	Pago.pago_codigo,
             [DESCUENTO_CODIGO]
