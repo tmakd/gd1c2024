@@ -298,55 +298,26 @@ ADD CONSTRAINT FK_BI_fact_Ventas_CODIGO_TIEMPO FOREIGN KEY (CODIGO_TIEMPO) REFER
 
 --CREACION DE VISTAS--
 GO
+/*
+1.  Ticket  Promedio  mensual.  Valor  promedio  de  las  ventas  (en  $)  según  la 
+localidad,  año  y  mes.  Se  calcula  en  función  de  la  sumatoria  del  importe  de  las 
+ventas sobre el total de las mismas. 
+*/
 CREATE VIEW [GeDeDe].[vw_BI_TicketPromedioMensual] AS
-SELECT
-    U.Localidad,
-    T.Año,
-    T.Mes,
-    AVG(F.Total) AS TicketPromedio
-FROM
-    [GeDeDe].[BI_fact_Ventas] F
-JOIN [GeDeDe].[BI_dim_Ubicacion] U ON F.CODIGO_UBICACION = U.CODIGO_UBICACION
-JOIN [GeDeDe].[BI_dim_Tiempo] T ON F.CODIGO_TIEMPO = T.CODIGO_TIEMPO
-GROUP BY
-    U.Localidad,
-    T.Año,
-    T.Mes;
+SELECT 
+    v.CODIGO_UBICACION,
+    t.Año,
+    t.Mes,
+    AVG(v.TOTAL) AS TicketPromedioMensual,
+    SUM(v.TOTAL) / COUNT(DISTINCT t.CODIGO_TIEMPO) AS ValorPromedioVentas
+FROM 
+    [GeDeDe].[BI_fact_Ventas] v
+INNER JOIN 
+    [GeDeDe].[BI_dim_Tiempo] t ON v.CODIGO_TIEMPO = t.CODIGO_TIEMPO
+GROUP BY 
+    v.CODIGO_UBICACION, t.Año, t.Mes;
 GO
--- Vista para la Cantidad Unidades Promedio
-CREATE VIEW [GeDeDe].[vw_BI_CantidadUnidadesPromedio] AS
-SELECT
-    T.Año,
-    T.Cuatrimestre,
-    Tr.Turno,
-    AVG(F.Cantidad) AS CantidadUnidadesPromedio
-FROM
-    [GeDeDe].[BI_fact_Ventas] F
-JOIN [GeDeDe].[BI_dim_Tiempo] T ON F.CODIGO_TIEMPO = T.CODIGO_TIEMPO
-JOIN [GeDeDe].[BI_dim_Turnos] Tr ON F.CODIGO_TURNO = Tr.CODIGO_TURNO
-GROUP BY
-    T.Año,
-    T.Cuatrimestre,
-    Tr.Turno;
 
-GO
--- Vista para las Ventas por Rango Etario
-CREATE VIEW [GeDeDe].[vw_BI_VentasPorRangoEtario] AS
-SELECT
-    R.Descripcion AS RangoEtario,
-    T.Año,
-    T.Mes,
-    SUM(F.Total) AS VentasTotales
-FROM
-    [GeDeDe].[BI_fact_Ventas] F
-JOIN [GeDeDe].[BI_dim_Rango_Etario] R ON F.CODIGO_RANGO_ETARIO_VENDEDOR = R.CODIGO_RANGO_ETARIO
-JOIN [GeDeDe].[BI_dim_Tiempo] T ON F.CODIGO_TIEMPO = T.CODIGO_TIEMPO
-GROUP BY
-    R.Descripcion,
-    T.Año,
-    T.Mes;
-
-GO
 
 GO
 -- Índice para BI_fact_Ventas por CODIGO_TIEMPO y CODIGO_UBICACION
