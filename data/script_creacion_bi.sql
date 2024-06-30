@@ -48,6 +48,9 @@ IF EXISTS (SELECT * FROM sys.tables WHERE name = 'BI_dim_Turnos')
 
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'BI_dim_Medio_Pago')
     DROP TABLE GeDeDe.BI_dim_Medio_Pago;
+	
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'BI_dim_Factura')
+    DROP TABLE GeDeDe.BI_dim_Factura;
 
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'BI_dim_Categoria_Subcategoria')
     DROP TABLE GeDeDe.BI_dim_Categoria_Subcategoria;
@@ -58,20 +61,18 @@ IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_TicketPromedioMensual' AN
 IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_CantidadUnidadesPromedio' AND schema_id = SCHEMA_ID('GeDeDe'))
     DROP VIEW [GeDeDe].[vw_BI_CantidadUnidadesPromedio];
 
-IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_VentasPorRangoEtario' AND schema_id = SCHEMA_ID('GeDeDe'))
-    DROP VIEW [GeDeDe].[vw_BI_VentasPorRangoEtario];
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_PorcentajeVentasPorRangoEtario' AND schema_id = SCHEMA_ID('GeDeDe'))
+    DROP VIEW [GeDeDe].[vw_BI_PorcentajeVentasPorRangoEtario];
 
-IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_VentasPorProducto' AND schema_id = SCHEMA_ID('GeDeDe'))
-    DROP VIEW [GeDeDe].[vw_BI_VentasPorProducto];
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_VentasPorTurnoYLocalidad' AND schema_id = SCHEMA_ID('GeDeDe'))
+    DROP VIEW [GeDeDe].[vw_BI_VentasPorTurnoYLocalidad];
 
-IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_PorcentajeVentasPorRangoEtarioYCaja' AND schema_id = SCHEMA_ID('GeDeDe'))
-    DROP VIEW [GeDeDe].[vw_BI_PorcentajeVentasPorRangoEtarioYCaja];
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_PorcentajeDescuentoPorMes' AND schema_id = SCHEMA_ID('GeDeDe'))
+    DROP VIEW [GeDeDe].[vw_BI_PorcentajeDescuentoPorMes];
+	
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_CategoriasTotalDescuento' AND schema_id = SCHEMA_ID('GeDeDe'))
+    DROP VIEW [GeDeDe].[vw_BI_CategoriasTotalDescuento]; --   <-- se debe hacer un select top 3 / order by en el select de la vista para obtener el ranking 
 
-IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_CantidadVentasPorTurnoLocalidadMes' AND schema_id = SCHEMA_ID('GeDeDe'))
-    DROP VIEW [GeDeDe].[vw_BI_CantidadVentasPorTurnoLocalidadMes];
-
-IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_PorcentajeDescuentoPorMesAnio' AND schema_id = SCHEMA_ID('GeDeDe'))
-    DROP VIEW [GeDeDe].[vw_BI_PorcentajeDescuentoPorMesAnio];
 
 --DROP PREVENTIVO DE PROCEDURES---------------------------------------------------------------
 
@@ -270,9 +271,19 @@ CREATE TABLE [GeDeDe].[BI_dim_Categoria_Subcategoria] (
     Subcategoria NVARCHAR(255)
 );
 GO
+-- Tabla dimensional de Factura
+CREATE TABLE [GeDeDe].[BI_dim_Factura] (
+    CODIGO_FACTURA INT IDENTITY(1,1) PRIMARY KEY,
+    Tipo NVARCHAR(255),
+    Numero DECIMAL(18,0),
+	Sucursal DECIMAL(18,0),
+	Caja DECIMAL(18,0)
+);
+GO
 --CREACIÓN DE TABLAS FÁCTICAS--
 CREATE TABLE [GeDeDe].[BI_fact_Ventas] (
 	CODIGO_VENTAS INT IDENTITY(1,1) PRIMARY KEY,
+	CODIGO_FACTURA INT NOT NULL,
     CODIGO_TIEMPO INT NOT NULL,
     CODIGO_UBICACION INT NOT NULL,
 	CODIGO_MEDIO_PAGO DECIMAL(18,0) NOT NULL,
@@ -285,11 +296,9 @@ CREATE TABLE [GeDeDe].[BI_fact_Ventas] (
     TOTAL DECIMAL(18, 2)
 );
 
---ALTER TABLE [GeDeDe].[BI_fact_Ventas]
---ADD CONSTRAINT PK_BI_fact_Ventas PRIMARY KEY (CODIGO_TIEMPO, CODIGO_UBICACION, CODIGO_MEDIO_PAGO, CODIGO_TURNO, CODIGO_RANGO_ETARIO_VENDEDOR, CODIGO_CATEGORIA_SUBCATEGORIA);
-
 ALTER TABLE [GeDeDe].[BI_fact_Ventas]
-ADD CONSTRAINT FK_BI_fact_Ventas_CODIGO_TIEMPO FOREIGN KEY (CODIGO_TIEMPO) REFERENCES [GeDeDe].[BI_dim_Tiempo](CODIGO_TIEMPO),
+ADD CONSTRAINT FK_BI_fact_Ventas_CODIGO_FACTURA FOREIGN KEY (CODIGO_FACTURA) REFERENCES [GeDeDe].[BI_dim_Factura](CODIGO_FACTURA),
+	CONSTRAINT FK_BI_fact_Ventas_CODIGO_TIEMPO FOREIGN KEY (CODIGO_TIEMPO) REFERENCES [GeDeDe].[BI_dim_Tiempo](CODIGO_TIEMPO),
     CONSTRAINT FK_BI_fact_Ventas_CODIGO_UBICACION FOREIGN KEY (CODIGO_UBICACION) REFERENCES [GeDeDe].[BI_dim_Ubicacion](CODIGO_UBICACION),
     CONSTRAINT FK_BI_fact_Ventas_CODIGO_MEDIO_PAGO FOREIGN KEY (CODIGO_MEDIO_PAGO) REFERENCES [GeDeDe].[BI_dim_Medio_Pago](CODIGO_MEDIO_PAGO),
     CONSTRAINT FK_BI_fact_Ventas_CODIGO_TURNO FOREIGN KEY (CODIGO_TURNO) REFERENCES [GeDeDe].[BI_dim_Turnos](CODIGO_TURNO),
@@ -305,17 +314,19 @@ ventas sobre el total de las mismas.
 */
 CREATE VIEW [GeDeDe].[vw_BI_TicketPromedioMensual] AS
 SELECT 
-    v.CODIGO_UBICACION,
+    s.CODIGO_UBICACION,
     t.Año,
     t.Mes,
     AVG(v.TOTAL) AS TicketPromedioMensual,
-    SUM(v.TOTAL) / COUNT(DISTINCT t.CODIGO_TIEMPO) AS ValorPromedioVentas
+    SUM(v.TOTAL) / COUNT(DISTINCT v.CODIGO_FACTURA) AS ValorPromedioVentas
 FROM 
     [GeDeDe].[BI_fact_Ventas] v
 INNER JOIN 
     [GeDeDe].[BI_dim_Tiempo] t ON v.CODIGO_TIEMPO = t.CODIGO_TIEMPO
+INNER JOIN 
+    [GeDeDe].[BI_dim_Sucursal] s ON v.CODIGO_UBICACION = s.CODIGO_UBICACION
 GROUP BY 
-    v.CODIGO_UBICACION, t.Año, t.Mes;
+    s.CODIGO_UBICACION, t.Año, t.Mes;
 GO
 /*
 2. Cantidad  unidades  promedio.  Cantidad  promedio  de  artículos  que  se  venden 
@@ -329,7 +340,7 @@ SELECT
     t.Año,
     t.Cuatrimestre,
     tu.Turno,
-    SUM(fv.CANTIDAD) / COUNT(DISTINCT fv.CODIGO_VENTAS) AS CantidadUnidadesPromedio
+    SUM(fv.CANTIDAD) / COUNT(DISTINCT fv.CODIGO_FACTURA) AS CantidadUnidadesPromedio
 FROM
     [GeDeDe].[BI_fact_Ventas] fv
     JOIN [GeDeDe].[BI_dim_Tiempo] t ON fv.CODIGO_TIEMPO = t.CODIGO_TIEMPO
@@ -338,10 +349,92 @@ GROUP BY
     t.Año,
     t.Cuatrimestre,
     tu.Turno
-ORDER BY
-    1,
-    2,
-    3;
+GO
+/*
+3.  Porcentaje  anual  de  ventas  registradas  por  rango  etario  del  empleado  según  el 
+tipo  de  caja  para  cada  cuatrimestre.  Se  calcula  tomando  la  cantidad  de  ventas 
+correspondientes sobre el total de ventas anual
+*/
+CREATE VIEW [GeDeDe].[vw_BI_PorcentajeVentasPorRangoEtario] AS
+SELECT 
+    t.Año,
+    t.Cuatrimestre,
+    r.Descripcion AS RangoEtario,
+    v.TIPO_CAJA,
+    COUNT(*) AS VentasRegistradas,
+    ROUND(CAST(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (PARTITION BY t.Año, t.Cuatrimestre) AS DECIMAL(10,2)), 2) AS PorcentajeAnualVentas
+FROM 
+    [GeDeDe].[BI_fact_Ventas] v
+INNER JOIN 
+    [GeDeDe].[BI_dim_Tiempo] t ON v.CODIGO_TIEMPO = t.CODIGO_TIEMPO
+INNER JOIN 
+    [GeDeDe].[BI_dim_Rango_Etario] r ON v.CODIGO_RANGO_ETARIO_VENDEDOR = r.CODIGO_RANGO_ETARIO
+GROUP BY 
+    t.Año, t.Cuatrimestre, r.Descripcion, v.TIPO_CAJA;
+GO
+/*
+4. Cantidad  de  ventas  registradas  por  turno  para  cada  localidad  según  el  mes  de 
+cada año.
+*/
+CREATE VIEW [GeDeDe].[vw_BI_VentasPorTurnoYLocalidad] AS
+SELECT 
+    t.Año,
+    t.Mes,
+    u.Localidad,
+    d.Turno,
+    COUNT(*) AS CantidadVentasRegistradas
+FROM 
+    [GeDeDe].[BI_fact_Ventas] v
+INNER JOIN 
+    [GeDeDe].[BI_dim_Tiempo] t ON v.CODIGO_TIEMPO = t.CODIGO_TIEMPO
+INNER JOIN 
+    [GeDeDe].[BI_dim_Ubicacion] u ON v.CODIGO_UBICACION = u.CODIGO_UBICACION
+INNER JOIN 
+    [GeDeDe].[BI_dim_Turnos] d ON v.CODIGO_TURNO = d.CODIGO_TURNO
+GROUP BY 
+    t.Año, t.Mes, u.Localidad, d.Turno;
+GO
+
+/*
+5.  Porcentaje  de  descuento  aplicados  en  función  del  total  de  los  tickets  según  el 
+mes de cada año. 
+*/
+CREATE VIEW [GeDeDe].[vw_BI_PorcentajeDescuentoPorMes] AS
+SELECT
+    t.Año,
+    t.Mes,
+    SUM(v.DESCUENTO_APLICADO) AS TotalDescuento,
+    SUM(v.TOTAL) AS TotalVentas,
+    (SUM(v.DESCUENTO_APLICADO) / SUM(v.TOTAL)) * 100 AS PorcentajeDescuento
+FROM
+    [GeDeDe].[BI_fact_Ventas] v
+INNER JOIN
+    [GeDeDe].[BI_dim_Tiempo] t ON v.CODIGO_TIEMPO = t.CODIGO_TIEMPO
+GROUP BY
+    t.Año, t.Mes;
+
+GO
+
+/*
+6.  Las  tres  categorías  de  productos  con  mayor  descuento  aplicado  a  partir  de 
+promociones para cada cuatrimestre de cada año. 
+*/
+CREATE VIEW [GeDeDe].[vw_BI_CategoriasTotalDescuento] AS
+SELECT 
+    t.Año,
+    t.Cuatrimestre,
+    c.Categoria,
+    SUM(v.DESCUENTO_APLICADO) AS TotalDescuento
+FROM 
+    [GeDeDe].[BI_fact_Ventas] v
+INNER JOIN 
+    [GeDeDe].[BI_dim_Tiempo] t ON v.CODIGO_TIEMPO = t.CODIGO_TIEMPO
+INNER JOIN 
+    [GeDeDe].[BI_dim_Categoria_Subcategoria] c ON v.CODIGO_CATEGORIA_SUBCATEGORIA = c.CODIGO_CATEGORIA_SUBCATEGORIA
+GROUP BY 
+    t.Año, t.Cuatrimestre, c.Categoria
+HAVING
+    SUM(v.DESCUENTO_APLICADO) > 0
 
 GO
 -- Índice para BI_fact_Ventas por CODIGO_TIEMPO y CODIGO_UBICACION
@@ -405,10 +498,11 @@ AS
 BEGIN
 	PRINT 'Migracion de Ventas'
 	DECLARE @Factura_Fecha_Hora Datetime, @Medio_Pago Decimal(18,0), @Empleado_Fecha_Nacimiento Date, @Producto_Id Decimal(18,0), @Producto_Cantidad decimal(18,0), @Tipo_Caja NVARCHAR(255), @Item_Descuento decimal(18,2), @Item_Precio_Total decimal(18,2);
+	DECLARE @Tipo NVARCHAR(255), @CAJA_ID DECIMAL(18,0), @Sucursal_ID DECIMAL(18,0), @Factura_NRO DECIMAL(18,0)
     DECLARE @Factura_Anio Int, @Factura_Cuatrimestre Int, @Factura_Mes Int, @Edad INT, @Rango_Etario_Descripcion NVARCHAR(255), @Turno NVARCHAR(255), @Categoria_Descripcion NVARCHAR(255), @Subcategoria_Descripcion NVARCHAR(255);
-	DECLARE @CODIGO_RANGO_ETARIO_VENDEDOR Int, @CODIGO_TIEMPO INT, @CODIGO_UBICACION INT, @CODIGO_TURNO INT, @CODIGO_CATEGORIA_SUBCATEGORIA INT;
+	DECLARE @CODIGO_RANGO_ETARIO_VENDEDOR Int, @CODIGO_TIEMPO INT, @CODIGO_UBICACION INT, @CODIGO_TURNO INT, @CODIGO_CATEGORIA_SUBCATEGORIA INT, @CODIGO_FACTURA INT;
 	DECLARE ventas_cursor CURSOR FOR
-		SELECT f.fact_fecha_hora, bi_suc.CODIGO_UBICACION , p.pago_medio_pago, e.empl_fecha_nacimiento, cate.cate_descripcion, subc.cate_descripcion, i.item_cantidad, tc.tipo_caja_nombre, i.item_descuento_promo, i.item_precio_total
+		SELECT f.fact_tipo, f.fact_nro, f.fact_sucursal, f.fact_caja, f.fact_fecha_hora, bi_suc.CODIGO_UBICACION , p.pago_medio_pago, e.empl_fecha_nacimiento, cate.cate_descripcion, subc.cate_descripcion, i.item_cantidad, tc.tipo_caja_nombre, i.item_descuento_promo, i.item_precio_total
 		FROM [GeDeDe].[Item_Factura] I
 				JOIN [GeDeDe].[Factura] F ON CAST(F.fact_tipo AS NVARCHAR(255)) + CAST(F.fact_sucursal AS NVARCHAR(255)) + CAST(F.fact_nro AS NVARCHAR(255)) + CAST(F.fact_caja AS NVARCHAR(255))
                           = CAST(I.item_fact_tipo AS NVARCHAR(255)) + CAST(I.item_fact_sucursal AS NVARCHAR(255)) + CAST(I.item_fact_nro AS NVARCHAR(255)) + CAST(I.item_fact_caja AS NVARCHAR(255))
@@ -423,14 +517,21 @@ BEGIN
 				JOIN [GeDeDe].[Categoria] cate on prod.prod_categoria = cate.cate_codigo
 				JOIN [GeDeDe].[Categoria] subc on prod.prod_subcategoria = subc.cate_codigo
 				JOIN [GeDeDe].[BI_dim_Sucursal] bi_suc on f.fact_sucursal = bi_suc.CODIGO_SUCURSAL
-		group by f.fact_fecha_hora, bi_suc.CODIGO_UBICACION , p.pago_medio_pago, e.empl_fecha_nacimiento, cate.cate_descripcion, subc.cate_descripcion, i.item_cantidad, tc.tipo_caja_nombre, i.item_descuento_promo, i.item_precio_total;
+		group by f.fact_tipo, f.fact_nro, f.fact_sucursal, f.fact_caja, f.fact_fecha_hora, bi_suc.CODIGO_UBICACION , p.pago_medio_pago, e.empl_fecha_nacimiento, cate.cate_descripcion, subc.cate_descripcion, i.item_cantidad, tc.tipo_caja_nombre, i.item_descuento_promo, i.item_precio_total;
 		
 	OPEN ventas_cursor;
 
-	FETCH ventas_cursor into @Factura_Fecha_Hora, @CODIGO_UBICACION, @Medio_Pago, @Empleado_Fecha_Nacimiento, @Categoria_Descripcion, @Subcategoria_Descripcion, @Producto_Cantidad, @Tipo_Caja, @Item_Descuento, @Item_Precio_Total;
+	FETCH ventas_cursor into @Tipo, @CAJA_ID, @Sucursal_ID, @Factura_Nro, @Factura_Fecha_Hora, @CODIGO_UBICACION, @Medio_Pago, @Empleado_Fecha_Nacimiento, @Categoria_Descripcion, @Subcategoria_Descripcion, @Producto_Cantidad, @Tipo_Caja, @Item_Descuento, @Item_Precio_Total;
 
 	WHILE (@@FETCH_STATUS = 0)
 		BEGIN
+			/*Factura*/
+			IF NOT EXISTS (SELECT 1 FROM [GeDeDe].BI_dim_Factura WHERE BI_dim_Factura.Tipo = @Tipo and BI_dim_Factura.Caja = @CAJA_ID and BI_dim_Factura.Sucursal = @Sucursal_ID and BI_dim_Factura.Numero = @Factura_NRO)
+			BEGIN
+				INSERT INTO [GeDeDe].[BI_dim_Factura] (Tipo, Caja, Sucursal, Numero) VALUES (@Tipo, @CAJA_ID, @Sucursal_ID, @Factura_NRO)
+			END
+			SELECT @CODIGO_FACTURA = CODIGO_FACTURA  FROM [GeDeDe].BI_dim_Factura WHERE BI_dim_Factura.Tipo = @Tipo and BI_dim_Factura.Caja = @CAJA_ID and BI_dim_Factura.Sucursal = @Sucursal_ID and BI_dim_Factura.Numero = @Factura_NRO
+
 			/*Tiempo*/
 			SET @Factura_Anio = YEAR(@Factura_Fecha_Hora);
 			SET @Factura_Mes = MONTH(@Factura_Fecha_Hora);
@@ -466,10 +567,10 @@ BEGIN
 			SELECT @CODIGO_CATEGORIA_SUBCATEGORIA = CODIGO_CATEGORIA_SUBCATEGORIA from [GeDeDe].BI_dim_Categoria_Subcategoria WHERE (BI_dim_Categoria_Subcategoria.Categoria = @Categoria_Descripcion and BI_dim_Categoria_Subcategoria.Subcategoria = @Subcategoria_Descripcion)
 
 			
-			INSERT INTO [GeDeDe].[BI_fact_Ventas] (CODIGO_TIEMPO, CODIGO_UBICACION, CODIGO_MEDIO_PAGO, CODIGO_TURNO, CODIGO_RANGO_ETARIO_VENDEDOR, CODIGO_CATEGORIA_SUBCATEGORIA, CANTIDAD, TIPO_CAJA, DESCUENTO_APLICADO, TOTAL) 
-			VALUES (@CODIGO_TIEMPO, @CODIGO_UBICACION, @Medio_Pago, @CODIGO_TURNO, @CODIGO_RANGO_ETARIO_VENDEDOR, @CODIGO_CATEGORIA_SUBCATEGORIA, @Producto_Cantidad, @Tipo_Caja, @Item_Descuento, @Item_Precio_Total);
+			INSERT INTO [GeDeDe].[BI_fact_Ventas] (CODIGO_FACTURA, CODIGO_TIEMPO, CODIGO_UBICACION, CODIGO_MEDIO_PAGO, CODIGO_TURNO, CODIGO_RANGO_ETARIO_VENDEDOR, CODIGO_CATEGORIA_SUBCATEGORIA, CANTIDAD, TIPO_CAJA, DESCUENTO_APLICADO, TOTAL) 
+			VALUES (@CODIGO_FACTURA, @CODIGO_TIEMPO, @CODIGO_UBICACION, @Medio_Pago, @CODIGO_TURNO, @CODIGO_RANGO_ETARIO_VENDEDOR, @CODIGO_CATEGORIA_SUBCATEGORIA, @Producto_Cantidad, @Tipo_Caja, @Item_Descuento, @Item_Precio_Total);
 			
-			FETCH ventas_cursor into @Factura_Fecha_Hora, @CODIGO_UBICACION, @Medio_Pago, @Empleado_Fecha_Nacimiento, @Categoria_Descripcion, @Subcategoria_Descripcion, @Producto_Cantidad, @Tipo_Caja, @Item_Descuento, @Item_Precio_Total;
+			FETCH ventas_cursor into @Tipo, @CAJA_ID, @Sucursal_ID, @Factura_Nro, @Factura_Fecha_Hora, @CODIGO_UBICACION, @Medio_Pago, @Empleado_Fecha_Nacimiento, @Categoria_Descripcion, @Subcategoria_Descripcion, @Producto_Cantidad, @Tipo_Caja, @Item_Descuento, @Item_Precio_Total;
 		END
 	
 	CLOSE ventas_cursor;
