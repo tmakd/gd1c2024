@@ -317,7 +317,31 @@ INNER JOIN
 GROUP BY 
     v.CODIGO_UBICACION, t.Año, t.Mes;
 GO
-
+/*
+2. Cantidad  unidades  promedio.  Cantidad  promedio  de  artículos  que  se  venden 
+en  función  de  los  tickets  según  el  turno  para  cada  cuatrimestre  de  cada  año.  Se 
+obtiene  sumando  la  cantidad  de  artículos  de  todos  los  tickets  correspondientes 
+sobre  la  cantidad  de  tickets.  Si  un  producto  tiene  más  de  una  unidad  en  un  ticket, 
+para el indicador se consideran todas las unidades. 
+*/
+CREATE VIEW [GeDeDe].[vw_BI_CantidadUnidadesPromedio] AS
+SELECT
+    t.Año,
+    t.Cuatrimestre,
+    tu.Turno,
+    SUM(fv.CANTIDAD) / COUNT(DISTINCT fv.CODIGO_VENTAS) AS CantidadUnidadesPromedio
+FROM
+    [GeDeDe].[BI_fact_Ventas] fv
+    JOIN [GeDeDe].[BI_dim_Tiempo] t ON fv.CODIGO_TIEMPO = t.CODIGO_TIEMPO
+    JOIN [GeDeDe].[BI_dim_Turnos] tu ON fv.CODIGO_TURNO = tu.CODIGO_TURNO
+GROUP BY
+    t.Año,
+    t.Cuatrimestre,
+    tu.Turno
+ORDER BY
+    1,
+    2,
+    3;
 
 GO
 -- Índice para BI_fact_Ventas por CODIGO_TIEMPO y CODIGO_UBICACION
