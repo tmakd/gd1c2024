@@ -503,7 +503,46 @@ HAVING
     SUM(v.DESCUENTO_APLICADO) > 0
 GO
 /*envios*/
+/*7.  Porcentaje  de  cumplimiento  de  envíos  en  los  tiempos  programados  por 
+sucursal por año/mes (desvío)*/
+CREATE VIEW [GeDeDe].[vw_BI_PorcentajeDeCumplimientoDeEnvios] AS
+SELECT 
+    e.CODIGO_SUCURSAL,
+    t.Año,
+    t.Mes,
+    SUM(CASE WHEN (DAY(e.FECHA_ENTREGA) = DAY(e.FECHA_PROGRAMADA) AND DATEPART(HOUR, e.FECHA_ENTREGA) <= CAST(e.HORA_FIN AS INT))
+		OR e.FECHA_ENTREGA < e.FECHA_PROGRAMADA THEN 1 ELSE 0 END) * 100.0 / COUNT(CODIGO_ENVIO) AS PorcentajeCumplimiento
+FROM 
+    [GeDeDe].[BI_fact_Envios] e
+INNER JOIN 
+    [GeDeDe].[BI_dim_Tiempo] t ON e.CODIGO_TIEMPO = t.CODIGO_TIEMPO
+GROUP BY 
+    e.CODIGO_SUCURSAL, t.Año, t.Mes;
+GO
+/*
+8.  Cantidad  de  envíos  por  rango  etario  de  clientes  para  cada  cuatrimestre  de 
+cada año.
+*/
+CREATE VIEW [GeDeDe].[vw_BI_CantidadDeEnviosPorRangoEtario]
+AS
+SELECT 
+	r.Descripcion 'Rango Etario',
+	count(e.CODIGO_ENVIO) 'Cantidad de envios'
+FROM GeDeDe.BI_fact_envios e JOIN GeDeDe.BI_dim_Rango_Etario r ON e.CODIGO_RANGO_ETARIO_CLIENTE = r.CODIGO_RANGO_ETARIO
+GROUP BY e.CODIGO_RANGO_ETARIO_CLIENTE, r.Descripcion
+GO
 
+/*
+9.  Las 5 localidades (tomando la localidad del cliente) con mayor costo de envío.
+*/
+CREATE VIEW [GeDeDe].[vw_BI_LocalidadesConMayorCostoDeEnvio]
+AS
+SELECT TOP 5 u.Localidad 'Localidad',
+		sum(COSTO) 'Costo de envio'
+FROM GeDeDe.BI_fact_envios e JOIN GeDeDe.BI_dim_Ubicacion u ON e.CLIENTE_UBICACION = u.CODIGO_UBICACION
+GROUP BY u.Localidad
+ORDER BY 2 DESC
+GO
 
 
 /*fin envios*/
@@ -706,7 +745,64 @@ GO
 CREATE PROCEDURE [GeDeDe].[BI_Migrar_Envios]
 AS
 BEGIN
- print 'Migracion de Envios'
+	print 'Migracion de Envios'
+
+	DECLARE @codigo_envio DECIMAL(18,0), @fecha_programada datetime, @fecha_entrega datetime, @costo_envio decimal(18,2),
+	@estado_envio nvarchar(255), @fecha_nacimiento date, @localidad nvarchar(255), @provincia nvarchar(255), @edad int,
+	@rango_etario nvarchar(255), @anio_fecha int, @mes_fecha int, @cuatrimestre_fecha int,
+	@hora_inicio decimal(18,0), @hora_fin decimal(18,0)
+	DECLARE @codigo_sucursal int, @codigo_rango_etario int, @codigo_tiempo int, @codigo_ubicacion int
+	
+
+	DECLARE cursor_envios CURSOR FOR
+	SELECT DISTINCT
+		envi_codigo,
+		envi_fecha_programada,
+		envi_fecha_entrega,
+		envi_horario_inicio,
+		envi_horario_fin,
+		envi_estado,
+		envi_costo,
+		envi_fact_sucursal,
+		clie_fecha_nacimiento,
+		clie_localidad,
+		clie_provincia
+	FROM GeDeDe.Envio JOIN GeDeDe.Cliente ON envi_cliente = clie_codigo
+
+	OPEN cursor_envios 
+	FETCH NEXT FROM cursor_envios INTO @codigo_envio, @fecha_programada, @fecha_entrega, @hora_inicio, @hora_fin, @estado_envio, @costo_envio, 
+	@codigo_sucursal, @fecha_nacimiento, @localidad, @provincia
+	WHILE @@FETCH_STATUS = 0
+	BEGIN
+
+		select @edad = GeDeDe.obtenerEdad(@fecha_nacimiento)
+		select @rango_etario = GeDeDe.obtenerRangoEtario(@edad)
+
+		IF NOT EXISTS(SELECT 1 FROM GeDeDe.BI_dim_Ubicacion WHERE Provincia = @provincia AND Localidad = @localidad)
+		INSERT INTO GeDeDe.BI_dim_Ubicacion(Localidad, Provincia)
+		VALUES(@localidad, @provincia)
+
+		set @anio_fecha = year(@fecha_entrega)
+		set @mes_fecha = month(@fecha_entrega)
+		select @cuatrimestre_fecha = GeDeDe.obtenerCuatrimestre(@fecha_entrega)
+
+		IF NOT EXISTS(SELECT 1 FROM GeDeDe.BI_dim_Tiempo where Cuatrimestre = @cuatrimestre_fecha and Mes = @mes_fecha and Año = @anio_fecha)
+		INSERT INTO GeDeDe.BI_dim_Tiempo(Año, Cuatrimestre, Mes)
+		VALUES(@anio_fecha, @cuatrimestre_fecha, @mes_fecha)
+
+		select @codigo_tiempo = CODIGO_TIEMPO from GeDeDe.BI_dim_Tiempo where Año = @anio_fecha and Cuatrimestre = @cuatrimestre_fecha and Mes = @mes_fecha
+		select @codigo_ubicacion = CODIGO_UBICACION from GeDeDe.BI_dim_Ubicacion WHERE Provincia = @provincia AND Localidad = @localidad
+		select @codigo_rango_etario = CODIGO_RANGO_ETARIO from GeDeDe.BI_dim_Rango_Etario WHERE @rango_etario = Descripcion
+
+		INSERT INTO GeDeDe.BI_fact_envios(CODIGO_ENVIO, CODIGO_TIEMPO, CODIGO_SUCURSAL, CODIGO_RANGO_ETARIO_CLIENTE, CLIENTE_UBICACION, FECHA_ENTREGA, FECHA_PROGRAMADA, HORA_INICIO, HORA_FIN, COSTO, ESTADO)
+		values(@codigo_envio, @codigo_tiempo, @codigo_sucursal, @codigo_rango_etario, @codigo_ubicacion, @fecha_entrega, @fecha_programada, @hora_inicio, @hora_fin, @costo_envio, @estado_envio)
+
+		FETCH NEXT FROM cursor_envios INTO @codigo_envio, @fecha_programada, @fecha_entrega, @hora_inicio, @hora_fin, @estado_envio, @costo_envio, 
+		@codigo_sucursal, @fecha_nacimiento, @localidad, @provincia
+	END
+	CLOSE cursor_envios
+	deallocate cursor_envios
+
 END
 GO
 
@@ -789,6 +885,7 @@ END CATCH
    AND EXISTS (SELECT 1 FROM [GeDeDe].[BI_dim_Ubicacion])
    AND EXISTS (SELECT 1 FROM [GeDeDe].[BI_fact_Pagos])
    AND EXISTS (SELECT 1 FROM [GeDeDe].[BI_fact_Ventas])
+   AND EXISTS (SELECT 1 FROM [GeDeDe].[BI_fact_Envios])
    )
 
    BEGIN
