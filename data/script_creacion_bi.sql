@@ -30,6 +30,12 @@ IF EXISTS(SELECT [name] FROM sys.objects WHERE [name] = 'obtenerCuatrimestre')
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'BI_fact_Ventas')
     DROP TABLE GeDeDe.BI_fact_Ventas;
 
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'BI_fact_Pagos')
+    DROP TABLE GeDeDe.BI_fact_Pagos;
+
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'BI_fact_Envios')
+    DROP TABLE GeDeDe.BI_fact_Envios;
+
 -- DROP PREVENTIVO DE TABLAS DIMENSIONALES --
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'BI_dim_Tiempo')
     DROP TABLE GeDeDe.BI_dim_Tiempo;
@@ -73,6 +79,23 @@ IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_PorcentajeDescuentoPorMes
 IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_CategoriasTotalDescuento' AND schema_id = SCHEMA_ID('GeDeDe'))
     DROP VIEW [GeDeDe].[vw_BI_CategoriasTotalDescuento]; --   <-- se debe hacer un select top 3 / order by en el select de la vista para obtener el ranking 
 
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_Sucursales_Pagos_Cuotas' AND schema_id = SCHEMA_ID('GeDeDe'))
+    DROP VIEW [GeDeDe].[vw_BI_Sucursales_Pagos_Cuotas]; 
+	
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_Promedio_Cuota_Rango_Etareo' AND schema_id = SCHEMA_ID('GeDeDe'))
+    DROP VIEW [GeDeDe].[vw_BI_Promedio_Cuota_Rango_Etareo]; 
+
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_Porcentaje_Descuento_Medio_Pago_Cuatrimestre' AND schema_id = SCHEMA_ID('GeDeDe'))
+    DROP VIEW [GeDeDe].[vw_BI_Porcentaje_Descuento_Medio_Pago_Cuatrimestre]; 
+
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_PorcentajeDeCumplimientoDeEnvios' AND schema_id = SCHEMA_ID('GeDeDe'))
+    DROP VIEW [GeDeDe].[vw_BI_PorcentajeDeCumplimientoDeEnvios];
+
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_CantidadDeEnviosPorRangoEtario' AND schema_id = SCHEMA_ID('GeDeDe'))
+    DROP VIEW [GeDeDe].[vw_BI_CantidadDeEnviosPorRangoEtario];
+
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_LocalidadesConMayorCostoDeEnvio' AND schema_id = SCHEMA_ID('GeDeDe'))
+    DROP VIEW [GeDeDe].[vw_BI_LocalidadesConMayorCostoDeEnvio];
 
 --DROP PREVENTIVO DE PROCEDURES---------------------------------------------------------------
 
@@ -304,6 +327,49 @@ ADD CONSTRAINT FK_BI_fact_Ventas_CODIGO_FACTURA FOREIGN KEY (CODIGO_FACTURA) REF
     CONSTRAINT FK_BI_fact_Ventas_CODIGO_TURNO FOREIGN KEY (CODIGO_TURNO) REFERENCES [GeDeDe].[BI_dim_Turnos](CODIGO_TURNO),
     CONSTRAINT FK_BI_fact_Ventas_CODIGO_RANGO_ETARIO_VENDEDOR FOREIGN KEY (CODIGO_RANGO_ETARIO_VENDEDOR) REFERENCES [GeDeDe].[BI_dim_Rango_Etario](CODIGO_RANGO_ETARIO),
     CONSTRAINT FK_BI_fact_Ventas_CODIGO_CATEGORIA_SUBCATEGORIA FOREIGN KEY (CODIGO_CATEGORIA_SUBCATEGORIA) REFERENCES [GeDeDe].[BI_dim_Categoria_Subcategoria](CODIGO_CATEGORIA_SUBCATEGORIA);
+GO
+
+CREATE TABLE [GeDeDe].[BI_fact_Envios](
+    CODIGO_ENVIO DECIMAL(18,0) NOT NULL,
+    CODIGO_TIEMPO INT NOT NULL,
+    CODIGO_RANGO_ETARIO_CLIENTE INT NOT NULL,
+    CODIGO_SUCURSAL DECIMAL(18,0) NOT NULL,
+    CLIENTE_UBICACION INT NOT NULL,
+    HORA_INICIO DECIMAL(18,0) NOT NULL,
+    HORA_FIN DECIMAL(18,0) NOT NULL,
+    FECHA_PROGRAMADA DATETIME,
+    FECHA_ENTREGA DATETIME,
+    ESTADO NVARCHAR(255),
+    COSTO DECIMAL(18,2)
+);
+
+ALTER TABLE [GeDeDe].[BI_fact_Envios]
+ADD CONSTRAINT PK_BI_fact_Envios_CODIGO_ENVIO PRIMARY KEY(CODIGO_ENVIO),
+    CONSTRAINT FK_BI_fact_Envios_CODIGO_TIEMPO FOREIGN KEY (CODIGO_TIEMPO) REFERENCES [GeDeDe].[BI_dim_Tiempo](CODIGO_TIEMPO),
+    CONSTRAINT FK_BI_fact_Envios_CODIGO_RANGO_ETARIO_CLIENTE FOREIGN KEY(CODIGO_RANGO_ETARIO_CLIENTE) REFERENCES [GeDeDe].[BI_dim_Rango_Etario](CODIGO_RANGO_ETARIO),
+    CONSTRAINT FK_BI_fact_Envios_CODIGO_SUCURSAL FOREIGN KEY (CODIGO_SUCURSAL) REFERENCES [GeDeDe].[BI_dim_Sucursal](CODIGO_SUCURSAL),
+    CONSTRAINT FK_BI_fact_Envios_CLIENTE_UBICACION  FOREIGN KEY(CLIENTE_UBICACION) REFERENCES [GeDeDe].[BI_dim_Ubicacion](CODIGO_UBICACION);
+GO
+
+CREATE TABLE [GeDeDe].[BI_fact_Pagos] (
+    CODIGO_PAGO INT IDENTITY(1,1) PRIMARY KEY,
+    CODIGO_FACTURA INT NOT NULL,
+	CODIGO_TIEMPO INT NOT NULL,
+    CODIGO_SUCURSAL DECIMAL(18,0) NOT NULL,
+    CODIGO_MEDIO_PAGO DECIMAL(18,0) NOT NULL,
+    CODIGO_RANGO_ETARIO_CLIENTE INT NOT NULL,
+    CUOTAS INT NULL, -- Campo para indicar el número de cuotas (null si no tiene cuotas)
+    MONTO DECIMAL(18, 2),
+    DESCUENTO_APLICADO DECIMAL(18, 2),
+    TOTAL_PAGO DECIMAL(18, 2)
+);
+
+ALTER TABLE [GeDeDe].[BI_fact_Pagos]
+ADD CONSTRAINT FK_BI_fact_Pagos_CODIGO_FACTURA FOREIGN KEY (CODIGO_FACTURA) REFERENCES [GeDeDe].[BI_dim_Factura](CODIGO_FACTURA),
+	CONSTRAINT FK_BI_fact_Pagos_CODIGO_TIEMPO FOREIGN KEY (CODIGO_TIEMPO) REFERENCES [GeDeDe].[BI_dim_Tiempo](CODIGO_TIEMPO),
+	CONSTRAINT FK_BI_fact_Pagos_CODIGO_SUCURSAL FOREIGN KEY (CODIGO_SUCURSAL) REFERENCES [GeDeDe].[BI_dim_Sucursal](CODIGO_SUCURSAL),
+	CONSTRAINT FK_BI_fact_Pagos_CODIGO_MEDIO_PAGO FOREIGN KEY (CODIGO_MEDIO_PAGO) REFERENCES [GeDeDe].[BI_dim_Medio_Pago](CODIGO_MEDIO_PAGO),
+	CONSTRAINT FK_BI_fact_Pagos_CODIGO_RANGO_ETARIO_CLIENTE FOREIGN KEY (CODIGO_RANGO_ETARIO_CLIENTE) REFERENCES [GeDeDe].[BI_dim_Rango_Etario](CODIGO_RANGO_ETARIO);
 
 --CREACION DE VISTAS--
 GO
@@ -435,8 +501,67 @@ GROUP BY
     t.Año, t.Cuatrimestre, c.Categoria
 HAVING
     SUM(v.DESCUENTO_APLICADO) > 0
+GO
+/*envios*/
+
+
+
+/*fin envios*/
+/*
+10.  Las  3  sucursales  con  el  mayor  importe  de  pagos  en  cuotas,  según  el  medio  de 
+pago,  mes  y  año.  Se  calcula  sumando  los  importes  totales  de  todas  las  ventas  en 
+cuotas.
+*/
+CREATE VIEW [GeDeDe].[vw_BI_Sucursales_Pagos_Cuotas] AS
+SELECT 
+    p.CODIGO_SUCURSAL,
+    t.Año,
+    t.Mes,
+    p.CODIGO_MEDIO_PAGO,
+    SUM(p.MONTO) AS ImportePagosCuotas
+FROM 
+    [GeDeDe].[BI_fact_Pagos] p
+INNER JOIN 
+    [GeDeDe].[BI_dim_Tiempo] t ON p.CODIGO_TIEMPO = t.CODIGO_TIEMPO
+WHERE 
+    p.CUOTAS IS NOT NULL -- Solo consideramos pagos en cuotas
+GROUP BY 
+    p.CODIGO_SUCURSAL, t.Año, t.Mes, p.CODIGO_MEDIO_PAGO;
 
 GO
+/*
+11.  Promedio de importe de la cuota en función del rango etareo del cliente. 
+*/
+CREATE VIEW [GeDeDe].[vw_BI_Promedio_Cuota_Rango_Etareo] AS
+SELECT 
+    p.CODIGO_RANGO_ETARIO_CLIENTE,
+    AVG(p.MONTO / p.CUOTAS) AS PromedioImporteCuota
+FROM 
+    [GeDeDe].[BI_fact_Pagos] p
+WHERE 
+    p.CUOTAS IS NOT NULL -- Consideramos solo los pagos que tienen cuotas
+GROUP BY 
+    p.CODIGO_RANGO_ETARIO_CLIENTE;
+GO
+/*
+12.  Porcentaje  de  descuento  aplicado  por  cada  medio  de  pago  en  función  del  valor 
+de  total  de  pagos  sin  el  descuento,  por  cuatrimestre.  Es  decir,  total  de  descuentos 
+sobre el total de pagos más el total de descuentos. 
+*/
+CREATE VIEW [GeDeDe].[vw_BI_Porcentaje_Descuento_Medio_Pago_Cuatrimestre] AS
+SELECT 
+    p.CODIGO_MEDIO_PAGO,
+    t.Año,
+    t.Cuatrimestre,
+    SUM(p.DESCUENTO_APLICADO) / SUM(p.TOTAL_PAGO) AS PorcentajeDescuento
+FROM 
+    [GeDeDe].[BI_fact_Pagos] p
+INNER JOIN 
+    [GeDeDe].[BI_dim_Tiempo] t ON p.CODIGO_TIEMPO = t.CODIGO_TIEMPO
+GROUP BY 
+    p.CODIGO_MEDIO_PAGO, t.Año, t.Cuatrimestre;
+GO
+
 -- Índice para BI_fact_Ventas por CODIGO_TIEMPO y CODIGO_UBICACION
 CREATE INDEX IX_BI_fact_Ventas_TIEMPO_UBICACION ON GeDeDe.BI_fact_Ventas (CODIGO_TIEMPO, CODIGO_UBICACION);
 GO
@@ -521,7 +646,7 @@ BEGIN
 		
 	OPEN ventas_cursor;
 
-	FETCH ventas_cursor into @Tipo, @CAJA_ID, @Sucursal_ID, @Factura_Nro, @Factura_Fecha_Hora, @CODIGO_UBICACION, @Medio_Pago, @Empleado_Fecha_Nacimiento, @Categoria_Descripcion, @Subcategoria_Descripcion, @Producto_Cantidad, @Tipo_Caja, @Item_Descuento, @Item_Precio_Total;
+	FETCH NEXT FROM ventas_cursor into @Tipo, @CAJA_ID, @Sucursal_ID, @Factura_Nro, @Factura_Fecha_Hora, @CODIGO_UBICACION, @Medio_Pago, @Empleado_Fecha_Nacimiento, @Categoria_Descripcion, @Subcategoria_Descripcion, @Producto_Cantidad, @Tipo_Caja, @Item_Descuento, @Item_Precio_Total;
 
 	WHILE (@@FETCH_STATUS = 0)
 		BEGIN
@@ -570,7 +695,7 @@ BEGIN
 			INSERT INTO [GeDeDe].[BI_fact_Ventas] (CODIGO_FACTURA, CODIGO_TIEMPO, CODIGO_UBICACION, CODIGO_MEDIO_PAGO, CODIGO_TURNO, CODIGO_RANGO_ETARIO_VENDEDOR, CODIGO_CATEGORIA_SUBCATEGORIA, CANTIDAD, TIPO_CAJA, DESCUENTO_APLICADO, TOTAL) 
 			VALUES (@CODIGO_FACTURA, @CODIGO_TIEMPO, @CODIGO_UBICACION, @Medio_Pago, @CODIGO_TURNO, @CODIGO_RANGO_ETARIO_VENDEDOR, @CODIGO_CATEGORIA_SUBCATEGORIA, @Producto_Cantidad, @Tipo_Caja, @Item_Descuento, @Item_Precio_Total);
 			
-			FETCH ventas_cursor into @Tipo, @CAJA_ID, @Sucursal_ID, @Factura_Nro, @Factura_Fecha_Hora, @CODIGO_UBICACION, @Medio_Pago, @Empleado_Fecha_Nacimiento, @Categoria_Descripcion, @Subcategoria_Descripcion, @Producto_Cantidad, @Tipo_Caja, @Item_Descuento, @Item_Precio_Total;
+			FETCH NEXT FROM ventas_cursor into @Tipo, @CAJA_ID, @Sucursal_ID, @Factura_Nro, @Factura_Fecha_Hora, @CODIGO_UBICACION, @Medio_Pago, @Empleado_Fecha_Nacimiento, @Categoria_Descripcion, @Subcategoria_Descripcion, @Producto_Cantidad, @Tipo_Caja, @Item_Descuento, @Item_Precio_Total;
 		END
 	
 	CLOSE ventas_cursor;
@@ -589,6 +714,52 @@ CREATE PROCEDURE [GeDeDe].[BI_Migrar_Pagos]
 AS
 BEGIN
  print 'Migracion de Pagos'
+	DECLARE @TIPO NVARCHAR(255), @NUMERO DECIMAL(18,0), @SUCURSAL DECIMAL(18,0), @CAJA DECIMAL(18,0), @PAGO_FECHA_HORA DATETIME, @MEDIO_PAGO DECIMAL(18,0), @CLIENTE_FECHA_NACIMIENTO DATE, @CUOTAS DECIMAL(18,0), @MONTO DECIMAL(18,2), @DESCUENTO_APLICADO_MEDIO_PAGO DECIMAL(18,2), @TOTAL_PAGO DECIMAL(18,2)
+	DECLARE @Pago_Anio Int, @Pago_Cuatrimestre Int, @Pago_Mes Int, @Edad INT, @Rango_Etario_Descripcion NVARCHAR(255)
+	DECLARE @CODIGO_FACTURA INT, @CODIGO_TIEMPO INT, @CODIGO_SUCURSAL INT, @CODIGO_RANGO_ETARIO_CLIENTE INT
+	DECLARE pagos_cursor CURSOR FOR 
+		SELECT p.pago_fact_tipo, p.pago_fact_sucursal, p.pago_fact_nro, p.pago_fact_caja, p.pago_fecha_hora, p.pago_medio_pago, c.clie_fecha_nacimiento, d.deta_pago_tarjeta_cuotas, CAST(p.pago_importe / (ISNULL(d.deta_pago_tarjeta_cuotas,1)) AS DECIMAL(18,2) ) monto, f.fact_descuento_aplicado_mp, p.pago_importe
+		FROM [GeDeDe].Pago p
+			JOIN [GeDeDe].[Detalle_Pago] d
+				on p.pago_detalle = d.deta_pago_codigo
+			JOIN [GeDeDe].Cliente c
+				on d.deta_pago_cliente = c.clie_codigo
+			JOIN [GeDeDe].[Factura] f
+				ON CAST(F.fact_tipo AS NVARCHAR(255)) + CAST(F.fact_sucursal AS NVARCHAR(255)) + CAST(F.fact_nro AS NVARCHAR(255))
+                          = CAST(p.pago_fact_tipo AS NVARCHAR(255)) + CAST(p.pago_fact_sucursal AS NVARCHAR(255)) + CAST(p.pago_fact_nro AS NVARCHAR(255))
+	OPEN pagos_cursor
+
+	FETCH NEXT FROM pagos_cursor into @Tipo, @SUCURSAL, @NUMERO, @CAJA, @PAGO_FECHA_HORA, @MEDIO_PAGO, @CLIENTE_FECHA_NACIMIENTO, @CUOTAS, @MONTO, @DESCUENTO_APLICADO_MEDIO_PAGO, @TOTAL_PAGO
+	
+	WHILE (@@FETCH_STATUS = 0)
+		BEGIN
+			IF NOT EXISTS (SELECT 1 FROM [GeDeDe].BI_dim_Factura WHERE BI_dim_Factura.Tipo = @Tipo and BI_dim_Factura.Caja = @CAJA and BI_dim_Factura.Sucursal = @Sucursal and BI_dim_Factura.Numero = @NUMERO)
+			BEGIN
+				INSERT INTO [GeDeDe].[BI_dim_Factura] (Tipo, Caja, Sucursal, Numero) VALUES (@Tipo, @CAJA, @Sucursal, @NUMERO)
+			END
+			SELECT @CODIGO_FACTURA = CODIGO_FACTURA FROM [GeDeDe].BI_dim_Factura f WHERE f.Tipo = @TIPO and f.Sucursal = @SUCURSAL and f.Numero = @NUMERO and f.Caja = @CAJA
+			
+			/*Tiempo*/
+			SET @Pago_Anio = YEAR(@PAGO_FECHA_HORA);
+			SET @Pago_Mes = MONTH(@PAGO_FECHA_HORA);
+			SET @Pago_Cuatrimestre = [GeDeDe].obtenerCuatrimestre(@PAGO_FECHA_HORA);
+			IF NOT EXISTS (SELECT 1 FROM [GeDeDe].BI_dim_Tiempo WHERE BI_dim_Tiempo.Cuatrimestre = @Pago_Cuatrimestre and BI_dim_Tiempo.Año = @Pago_Anio and BI_dim_Tiempo.Mes = @Pago_Mes)
+			BEGIN
+				INSERT INTO [GeDeDe].[BI_dim_Tiempo] (Cuatrimestre, Año, Mes) VALUES (@Pago_Cuatrimestre, @Pago_Anio, @Pago_Mes)
+			END
+			SELECT @CODIGO_TIEMPO = CODIGO_TIEMPO  FROM [GeDeDe].BI_dim_Tiempo WHERE BI_dim_Tiempo.Cuatrimestre = @Pago_Cuatrimestre and BI_dim_Tiempo.Año = @Pago_Anio and BI_dim_Tiempo.Mes = @Pago_Mes
+
+			SET @Edad = [GeDeDe].obtenerEdad(@CLIENTE_FECHA_NACIMIENTO)
+			SET @Rango_Etario_Descripcion = [GeDeDe].obtenerRangoEtario(@Edad)
+			SELECT @CODIGO_RANGO_ETARIO_CLIENTE = CODIGO_RANGO_ETARIO  FROM [GeDeDe].BI_dim_Rango_Etario WHERE (BI_dim_Rango_Etario.Descripcion = @Rango_Etario_Descripcion)
+
+			INSERT INTO [GeDeDe].[BI_fact_Pagos] (CODIGO_FACTURA, CODIGO_TIEMPO, CODIGO_SUCURSAL, CODIGO_MEDIO_PAGO, CODIGO_RANGO_ETARIO_CLIENTE, CUOTAS, MONTO, DESCUENTO_APLICADO, TOTAL_PAGO)
+			VALUES (@CODIGO_FACTURA, @CODIGO_TIEMPO, @SUCURSAL, @MEDIO_PAGO, @CODIGO_RANGO_ETARIO_CLIENTE, @CUOTAS, @MONTO, @DESCUENTO_APLICADO_MEDIO_PAGO, @TOTAL_PAGO)
+			
+			FETCH NEXT FROM pagos_cursor into @Tipo, @SUCURSAL, @NUMERO, @CAJA, @PAGO_FECHA_HORA, @MEDIO_PAGO, @CLIENTE_FECHA_NACIMIENTO, @CUOTAS, @MONTO, @DESCUENTO_APLICADO_MEDIO_PAGO, @TOTAL_PAGO
+		END
+	CLOSE pagos_cursor;
+	DEALLOCATE pagos_cursor;
 END
 GO
 
@@ -600,14 +771,25 @@ GO
 	EXECUTE [GeDeDe].[BI_Migrar_Medios_de_Pago]
 	EXECUTE [GeDeDe].[BI_Migrar_Sucursales]
 	EXECUTE [GeDeDe].[BI_Migrar_Ventas]
+	EXECUTE [GeDeDe].[BI_Migrar_Envios]
+	EXECUTE [GeDeDe].[BI_Migrar_Pagos]
 END TRY
 BEGIN CATCH
     ROLLBACK TRANSACTION;
 	THROW 50001, 'Error al cargar el modelo de BI, ninguna tabla fue cargada',1;
 END CATCH
 
- IF (EXISTS (SELECT 1 FROM [GeDeDe].[Medio_Pago])
-   AND EXISTS (SELECT 1 FROM [GeDeDe].[Sucursal]))
+ IF (EXISTS (SELECT 1 FROM [GeDeDe].[BI_dim_Categoria_Subcategoria])
+   AND EXISTS (SELECT 1 FROM [GeDeDe].[BI_dim_Factura])
+   AND EXISTS (SELECT 1 FROM [GeDeDe].[BI_dim_Medio_Pago])
+   AND EXISTS (SELECT 1 FROM [GeDeDe].[BI_dim_Rango_Etario])
+   AND EXISTS (SELECT 1 FROM [GeDeDe].[BI_dim_Sucursal])
+   AND EXISTS (SELECT 1 FROM [GeDeDe].[BI_dim_Tiempo])
+   AND EXISTS (SELECT 1 FROM [GeDeDe].[BI_dim_Turnos])
+   AND EXISTS (SELECT 1 FROM [GeDeDe].[BI_dim_Ubicacion])
+   AND EXISTS (SELECT 1 FROM [GeDeDe].[BI_fact_Pagos])
+   AND EXISTS (SELECT 1 FROM [GeDeDe].[BI_fact_Ventas])
+   )
 
    BEGIN
 	PRINT 'Modelo de BI creado y cargado correctamente.';

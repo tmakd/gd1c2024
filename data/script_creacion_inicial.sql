@@ -699,20 +699,30 @@ BEGIN
 
 
     print 'Cargando tabla Pago'
+
+		SELECT TICKET_TIPO_COMPROBANTE, TICKET_NUMERO, SUCURSAL_NOMBRE, CAJA_NUMERO into #Ticket_Caja
+		FROM [GD1C2024].[gd_esquema].[Maestra]
+		WHERE [TICKET_TIPO_COMPROBANTE] IS NOT NULL AND [TICKET_NUMERO] IS NOT NULL and SUCURSAL_NOMBRE is not null and CAJA_NUMERO is not null
+
+
         INSERT INTO [GD1C2024].[GeDeDe].[Pago] (pago_medio_pago, pago_fact_tipo, pago_fact_sucursal, pago_fact_caja , pago_fact_nro, pago_fecha_hora, pago_importe,pago_detalle)
         SELECT distinct 	[GD1C2024].[GeDeDe].Medio_Pago.medio_pago_codigo,--medio de pago
                             [GD1C2024].[GeDeDe].Factura.fact_tipo,--tipo fact
                             [GD1C2024].[GeDeDe].Factura.fact_sucursal, --fact sucu
-                            [CAJA_NUMERO], --fact caja
+                            (
+							select top 1 CAJA_NUMERO
+							from #Ticket_Caja tc 
+							where tc.TICKET_TIPO_COMPROBANTE = m.TICKET_TIPO_COMPROBANTE and tc.SUCURSAL_NOMBRE = m.SUCURSAL_NOMBRE and tc.TICKET_NUMERO = m.TICKET_NUMERO
+							), --fact caja 
                             [GD1C2024].[GeDeDe].Factura.fact_nro, --fact nro
-                            [PAGO_FECHA],-- pago F/H
-                            [PAGO_IMPORTE],--pago importe
+                            m.[PAGO_FECHA],-- pago F/H
+                            m.[PAGO_IMPORTE],--pago importe
                             [GD1C2024].[GeDeDe].Detalle_Pago.deta_pago_codigo --detalle
-        FROM [GD1C2024].[gd_esquema].[Maestra]
-        INNER JOIN [GD1C2024].[GeDeDe].Medio_Pago on PAGO_MEDIO_PAGO = Medio_Pago.medio_pago_detalle
-        INNER JOIN [GD1C2024].[GeDeDe].Sucursal on sucu_nombre = [SUCURSAL_NOMBRE]
-        INNER JOIN [GD1C2024].[GeDeDe].Factura on [TICKET_TIPO_COMPROBANTE] = fact_tipo  and [sucu_codigo] = fact_sucursal AND [TICKET_NUMERO] = fact_nro
-        INNER JOIN [GD1C2024].[GeDeDe].Detalle_Pago on  Detalle_Pago.deta_pago_tarjeta_nro = [PAGO_TARJETA_NRO]
+        FROM [GD1C2024].[gd_esquema].[Maestra] m
+        INNER JOIN [GD1C2024].[GeDeDe].Medio_Pago on m.PAGO_MEDIO_PAGO = Medio_Pago.medio_pago_detalle
+        INNER JOIN [GD1C2024].[GeDeDe].Sucursal on sucu_nombre = m.[SUCURSAL_NOMBRE]
+        INNER JOIN [GD1C2024].[GeDeDe].Factura on m.[TICKET_TIPO_COMPROBANTE] = fact_tipo  and [sucu_codigo] = fact_sucursal AND m.[TICKET_NUMERO] = fact_nro
+        LEFT JOIN [GD1C2024].[GeDeDe].Detalle_Pago on  Detalle_Pago.deta_pago_tarjeta_nro = m.[PAGO_TARJETA_NRO]
         where pago_importe is not null
 
     END;
