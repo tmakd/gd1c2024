@@ -59,6 +59,9 @@ IF EXISTS (SELECT * FROM sys.tables WHERE name = 'BI_fact_Pagos')
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'BI_fact_Envios')
     DROP TABLE GeDeDe.BI_fact_Envios;
 
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'BI_fact_Descuento_Promocion')
+    DROP TABLE GeDeDe.BI_fact_Descuento_Promocion;
+
 -- DROP PREVENTIVO DE TABLAS DIMENSIONALES --
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'BI_dim_Tiempo')
     DROP TABLE GeDeDe.BI_dim_Tiempo;
@@ -86,6 +89,7 @@ IF EXISTS (SELECT * FROM sys.tables WHERE name = 'BI_dim_Categoria_Subcategoria'
 
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'BI_dim_Tipo_Caja')
     DROP TABLE GeDeDe.BI_dim_Tipo_Caja;
+
 
 -- DROPS PREVENTIVOS DE VISTAS----------------------------------------------------------------
 IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_BI_TicketPromedioMensual' AND schema_id = SCHEMA_ID('GeDeDe'))
@@ -451,6 +455,30 @@ CREATE TABLE #ventas_temporal(
 	CANTIDAD_ARTICULOS INT
 );
 GO
+
+CREATE TABLE #promociones_temporal (
+	CODIGO_TIEMPO INT,
+	CODIGO_CATEGORIA_SUBCATEGORIA INT,
+	FACTURA VARCHAR(255), 
+	VALOR_DESCUENTO_POR_PROMOCION DECIMAL(18,2),
+	VALOR_TOTAL_DESCUENTO_APLICADO DECIMAL(18,2),
+	VALOR_TOTAL_FACTURAS DECIMAL(18,2)
+);
+GO
+
+CREATE TABLE [GeDeDe].[BI_fact_Descuento_Promocion] (
+	CODIGO_TIEMPO INT, -- PK FK
+	CODIGO_CATEGORIA_SUBCATEGORIA INT, -- PK FK
+	VALOR_DESCUENTO_POR_PROMOCION DECIMAL(18,2),
+	VALOR_TOTAL_DESCUENTO_APLICADO DECIMAL(18,2),
+	VALOR_TOTAL_FACTURAS DECIMAL(18,2)
+);
+GO;
+
+ALTER TABLE [GeDeDe].[BI_fact_Descuento_Promocion]
+ADD CONSTRAINT PK_BI_fact_Descuento_Promocion PRIMARY KEY (CODIGO_TIEMPO, CODIGO_CATEGORIA_SUBCATEGORIA);
+
+
 --CREACION DE VISTAS--
 
 /*
@@ -637,7 +665,7 @@ CREATE VIEW [GeDeDe].[vw_BI_Sucursales_Pagos_Cuotas] AS
 SELECT 
     p.CODIGO_SUCURSAL,
     t.Año,
-    t.Mes,
+    t.Mes, 
     p.CODIGO_MEDIO_PAGO,
     SUM(p.MONTO) AS ImportePagosCuotas
 FROM 
@@ -891,6 +919,76 @@ BEGIN
 END
 GO
 
+CREATE PROCEDURE [GeDeDe].[BI_Migrar_Categoria_Subcategoria]
+AS
+BEGIN
+	print 'Migracion de Categoria Subcategoria'
+	INSERT INTO [GeDeDe].[BI_dim_Categoria_Subcategoria] (Categoria, Subcategoria)
+	SELECT c2.cate_descripcion, c1.cate_descripcion
+	FROM [GeDeDe].Subcategoria
+		join [GeDeDe].Categoria c1 on c1.cate_codigo = subc_codigo
+		join [GeDeDe].Categoria c2 on c2.cate_codigo = subc_categoria
+
+END;
+select * from #promociones_temporal;
+CREATE PROCEDURE [GeDeDe].[BI_Migrar_Promocion_Descuentos]
+AS
+BEGIN
+	print 'Migracion de Promocion Descuento'
+	DECLARE @TOTAL_TICKET DECIMAL(18,2), @DESCUENTO_PROMOCION DECIMAL(18,2), @DESCUENTO_MEDIO_PAGO DECIMAL(18,2), @FACTURA VARCHAR(255) ,@CATEGORIA_CODIGO DECIMAL(18,0), @SUBCATEGORIA_CODIGO DECIMAL(18,0), @FACT_FECHA DATETIME
+	DECLARE @ANIO INT, @MES INT, @CUATRIMESTRE INT, @CODIGO_TIEMPO INT, @CODIGO_CAT_SUB INT
+	DECLARE @CATEGORIA_DESC NVARCHAR(255), @SUBC_DESC NVARCHAR(255)
+	DECLARE @DESCUENTO_TOTAL DECIMAL(18,2)
+	DECLARE C_1 CURSOR FOR
+	SELECT fact_total_ticket, fact_total_descuento_aplicado, fact_tipo+cast(fact_sucursal as varchar(50))+ cast(fact_nro as varchar(50)) + cast(fact_caja as varchar(50)) ,fact_descuento_aplicado_mp, prod_categoria, prod_subcategoria, fact_fecha_hora
+	FROM [GeDeDe].Factura
+	join [GeDeDe].Item_Factura on fact_tipo= item_fact_tipo and fact_sucursal = item_fact_sucursal and fact_nro = item_fact_nro and fact_caja = item_fact_caja
+	join [GeDeDe].Producto on item_producto = prod_codigo
+
+	OPEN C_1
+
+	FETCH NEXT FROM C_1 INTO @TOTAL_TICKET, @DESCUENTO_PROMOCION, @FACTURA, @DESCUENTO_MEDIO_PAGO, @CATEGORIA_CODIGO, @SUBCATEGORIA_CODIGO, @FACT_FECHA 
+
+	WHILE @@FETCH_STATUS = 0
+	BEGIN
+		SET @ANIO = YEAR(@FACT_FECHA)
+		SET @MES = MONTH(@FACT_FECHA)
+		SET @CUATRIMESTRE = GeDeDe.obtenerCuatrimestre(@FACT_FECHA)
+
+		-- TIEMPO
+		IF NOT EXISTS(SELECT 1 FROM GeDeDe.BI_dim_Tiempo where Cuatrimestre = @CUATRIMESTRE and Mes = @MES and Año = @ANIO)
+        INSERT INTO GeDeDe.BI_dim_Tiempo(Año, Cuatrimestre, Mes)
+        VALUES(@ANIO, @CUATRIMESTRE, @MES)
+
+		select @CODIGO_TIEMPO = CODIGO_TIEMPO from GeDeDe.BI_dim_Tiempo where Año = @ANIO and Cuatrimestre = @CUATRIMESTRE and Mes = @MES
+
+		-- CATEGORIA Y SUBCATEGORIA
+		
+		select @CATEGORIA_DESC = cate_descripcion from [GeDeDe].Categoria where cate_codigo = @CATEGORIA_CODIGO;
+
+		select @SUBC_DESC = cate_descripcion from [GeDeDe].Categoria where cate_codigo = @SUBCATEGORIA_CODIGO;
+		
+		select @CODIGO_CAT_SUB = CODIGO_CATEGORIA_SUBCATEGORIA 
+		from GeDeDe.BI_dim_Categoria_Subcategoria where Categoria = @CATEGORIA_DESC AND Subcategoria = @SUBC_DESC
+
+		SET @DESCUENTO_TOTAL = @DESCUENTO_PROMOCION + @DESCUENTO_MEDIO_PAGO
+
+		INSERT INTO #promociones_temporal (CODIGO_TIEMPO, CODIGO_CATEGORIA_SUBCATEGORIA, FACTURA ,VALOR_DESCUENTO_POR_PROMOCION, VALOR_TOTAL_DESCUENTO_APLICADO, VALOR_TOTAL_FACTURAS)
+		VALUES (@CODIGO_TIEMPO, @CODIGO_CAT_SUB, @FACTURA, @DESCUENTO_PROMOCION, @DESCUENTO_TOTAL, @TOTAL_ticket)
+		
+		FETCH NEXT FROM C_1 INTO @TOTAL_TICKET, @DESCUENTO_PROMOCION, @FACTURA, @DESCUENTO_MEDIO_PAGO, @CATEGORIA_CODIGO, @SUBCATEGORIA_CODIGO, @FACT_FECHA
+	END
+
+	CLOSE C_1
+	DEALLOCATE C_1
+
+	INSERT INTO [GeDeDe].BI_fact_Descuento_Promocion (CODIGO_TIEMPO, CODIGO_CATEGORIA_SUBCATEGORIA, VALOR_DESCUENTO_POR_PROMOCION, VALOR_TOTAL_DESCUENTO_APLICADO, VALOR_TOTAL_FACTURAS)
+	SELECT  CODIGO_TIEMPO, CODIGO_CATEGORIA_SUBCATEGORIA,
+
+	FROM #promociones_temporal
+	group by CODIGO_TIEMPO, CODIGO_CATEGORIA_SUBCATEGORIA
+END;
+
 CREATE PROCEDURE [GeDeDe].[BI_Migrar_Pagos]
 AS
 BEGIN
@@ -943,18 +1041,19 @@ BEGIN
 	DEALLOCATE pagos_cursor;
 END
 GO
-
 --EJECUCIÓN DE PROCEDURES: MIGRACIÓN DE MODELO OLTP A MODELO BI
 
 
  BEGIN TRANSACTION
  BEGIN TRY
+	EXECUTE [GeDeDe].[BI_Migrar_Categoria_Subcategoria]
 	EXECUTE [GeDeDe].[BI_Migrar_Tipos_de_Caja]
 	EXECUTE [GeDeDe].[BI_Migrar_Medios_de_Pago]
 	EXECUTE [GeDeDe].[BI_Migrar_Sucursales]
 	EXECUTE [GeDeDe].[BI_Migrar_Ventas]
 	EXECUTE [GeDeDe].[BI_Migrar_Envios]
 	EXECUTE [GeDeDe].[BI_Migrar_Pagos]
+	EXECUTE [GeDeDe].[BI_Migrar_Promocion_Descuentos]
 END TRY
 BEGIN CATCH
     ROLLBACK TRANSACTION;
