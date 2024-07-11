@@ -21,27 +21,68 @@ GO
 CREATE PROCEDURE [GeDeDe].[CLEAN]
 AS
 BEGIN
-	DROP TABLE GeDeDe.Aplicacion_Descuento;
-	DROP TABLE GeDeDe.Descuento;
-	DROP TABLE GeDeDe.Pago;
-	DROP TABLE GeDeDe.Medio_Pago;
-	DROP TABLE GeDeDe.Detalle_Pago;
-	DROP TABLE GeDeDe.Item_Factura;
-	DROP TABLE GeDeDe.Promocion_Producto;
-	DROP TABLE GeDeDe.Promocion;
-	DROP TABLE GeDeDe.Regla;
-	DROP TABLE GeDeDe.Producto;
-	DROP TABLE GeDeDe.Marca;
-	DROP TABLE GeDeDe.Subcategoria;
-	DROP TABLE GeDeDe.Categoria;
-	DROP TABLE GeDeDe.Envio;
-	DROP TABLE GeDeDe.Factura;
-	DROP TABLE GeDeDe.Cliente;
-	DROP TABLE GeDeDe.Empleado;
-	DROP TABLE GeDeDe.Caja;
-	DROP TABLE GeDeDe.Tipo_Caja;
-	DROP TABLE GeDeDe.Sucursal;
-	DROP TABLE GeDeDe.Super;
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Aplicacion_Descuento')
+		DROP TABLE GeDeDe.Aplicacion_Descuento;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Descuento')
+		DROP TABLE GeDeDe.Descuento;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Pago')
+		DROP TABLE GeDeDe.Pago;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Medio_Pago')
+		DROP TABLE GeDeDe.Medio_Pago;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Detalle_Pago')
+		DROP TABLE GeDeDe.Detalle_Pago;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Item_Factura')
+		DROP TABLE GeDeDe.Item_Factura;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Promocion_Producto')
+		DROP TABLE GeDeDe.Promocion_Producto;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Promocion')
+		DROP TABLE GeDeDe.Promocion;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Regla')
+		DROP TABLE GeDeDe.Regla;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Producto')
+		DROP TABLE GeDeDe.Producto;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Marca')
+		DROP TABLE GeDeDe.Marca;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Subcategoria')
+		DROP TABLE GeDeDe.Subcategoria;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Categoria')
+		DROP TABLE GeDeDe.Categoria;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Envio')
+		DROP TABLE GeDeDe.Envio;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Factura')
+		DROP TABLE GeDeDe.Factura;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Cliente')
+		DROP TABLE GeDeDe.Cliente;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Empleado')
+		DROP TABLE GeDeDe.Empleado;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Caja')
+		DROP TABLE GeDeDe.Caja;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Tipo_Caja')
+		DROP TABLE GeDeDe.Tipo_Caja;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Sucursal')
+		DROP TABLE GeDeDe.Sucursal;
+
+	IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Super')
+		DROP TABLE GeDeDe.Super;
 END
 GO
 
